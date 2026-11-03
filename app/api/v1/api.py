@@ -5,3 +5,4 @@ api_router = APIRouter()
 
 # Register endpoint routers
 api_router.include_router(health.router, tags=["Health"])
+

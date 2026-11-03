@@ -36,3 +36,4 @@ def root():
         "health_check": f"{settings.API_V1_STR}/health",
         "status": "online",
     }
+

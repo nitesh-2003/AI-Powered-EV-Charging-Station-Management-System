@@ -21,3 +21,4 @@ def check_health():
         "version": settings.VERSION,
         "environment": "debug" if settings.DEBUG else "production",
     }
+
