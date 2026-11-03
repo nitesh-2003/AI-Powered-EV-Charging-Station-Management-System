@@ -35,3 +35,4 @@ class TimestampedModel(Base):
         nullable=False,
         doc="Timestamp when record was last updated",
     )
+

@@ -60,3 +60,4 @@ def test_create_station_and_charging_point_relationship():
         assert orphaned_point is None
     finally:
         db.close()
+

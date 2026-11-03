@@ -55,3 +55,4 @@ class ChargingStation(TimestampedModel):
 
     def __repr__(self) -> str:
         return f"<ChargingStation id={self.id} name={self.name} status={self.status}>"
+

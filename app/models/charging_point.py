@@ -63,3 +63,4 @@ class ChargingPoint(TimestampedModel):
 
     def __repr__(self) -> str:
         return f"<ChargingPoint id={self.id} identifier={self.identifier} status={self.status}>"
+
