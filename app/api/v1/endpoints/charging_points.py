@@ -70,3 +70,4 @@ def delete_charging_point(
         )
     ChargingPointService.delete(db, point=point)
     return None
+

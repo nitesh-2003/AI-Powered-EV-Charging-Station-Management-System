@@ -66,3 +66,4 @@ class StationService:
         """Delete a station (cascades to all child charging points)."""
         db.delete(station)
         db.commit()
+

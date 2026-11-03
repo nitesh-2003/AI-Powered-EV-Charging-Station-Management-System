@@ -73,3 +73,4 @@ class ChargingPointService:
         """Delete an individual charging point dispenser."""
         db.delete(point)
         db.commit()
+

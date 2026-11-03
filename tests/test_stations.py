@@ -135,3 +135,4 @@ async def test_stations_and_charging_points_lifecycle():
         # Verify station and point are gone (404)
         assert (await ac.get(f"{settings.API_V1_STR}/stations/{station_id}")).status_code == 404
         assert (await ac.get(f"{settings.API_V1_STR}/points/{point_id}")).status_code == 404
+

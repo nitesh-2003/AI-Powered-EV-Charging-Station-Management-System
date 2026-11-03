@@ -36,3 +36,4 @@ class StationResponse(StationBase):
     charging_points: List[ChargingPointResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
