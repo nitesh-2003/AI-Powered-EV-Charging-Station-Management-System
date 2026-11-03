@@ -44,3 +44,4 @@ class UserService:
         if not verify_password(password, user.hashed_password):
             return None
         return user
+

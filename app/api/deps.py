@@ -77,3 +77,4 @@ def require_admin(
             detail="Insufficient permissions. Administrator role required.",
         )
     return current_user
+

@@ -95,3 +95,4 @@ async def test_user_registration_and_authentication_flow():
         )
         assert admin_resp.status_code == 200
         assert "privileged administrative access" in admin_resp.json()["message"]
+

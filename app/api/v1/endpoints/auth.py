@@ -122,3 +122,4 @@ def test_admin_access(
         "message": f"Hello Admin {current_admin.full_name}, you have privileged administrative access!",
         "role": current_admin.role,
     }
+
