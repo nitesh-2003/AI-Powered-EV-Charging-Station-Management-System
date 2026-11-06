@@ -10,7 +10,7 @@ class RecommendationRequest(BaseModel):
     battery_percentage: float = Field(..., ge=0.0, le=100.0, description="Current EV State of Charge (SOC %)")
     connector_type: Optional[str] = Field(None, description="Required plug standard: 'CCS2', 'TYPE2', 'CHADEMO'")
     min_power_kw: Optional[float] = Field(None, ge=0.0, description="Minimum acceptable charging power in kW")
-    max_distance_km: Optional[float] = Field(50.0, ge=1.0, le=500.0, description="Search radius in kilometers")
+    max_distance_km: Optional[float] = Field(2500.0, ge=1.0, le=5000.0, description="Search radius in kilometers")
 
 
 class ScoredStationRecommendation(BaseModel):

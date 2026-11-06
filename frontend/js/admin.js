@@ -1,10 +1,13 @@
 let trendChartInstance = null;
 let donutChartInstance = null;
+let mapPickerInstance = null;
+let mapPickerMarker = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   // Ensure user is authenticated as ADMIN, or auto-login with default admin credentials
   await ensureAdminAccess();
   loadAdminDashboard();
+  initMapPicker();
 
   document.getElementById("btn-save-station").addEventListener("click", handleCreateStation);
   document.getElementById("btn-save-point").addEventListener("click", handleCreatePoint);
@@ -13,11 +16,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function ensureAdminAccess() {
   if (!Auth.isAuthenticated() || !Auth.isAdmin()) {
     try {
-      // Auto-authenticate as default station admin
-      const tokenData = await apiRequest("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email: "admin.operator@example.com", password: "AdminMasterKey123!" })
-      });
+      // Auto-authenticate with seeded admin or test admin
+      let tokenData;
+      try {
+        tokenData = await apiRequest("/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email: "admin@voltflow.io", password: "AdminPassword123!" })
+        });
+      } catch (_) {
+        tokenData = await apiRequest("/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email: "admin.operator@example.com", password: "AdminMasterKey123!" })
+        });
+      }
       localStorage.setItem("ev_access_token", tokenData.access_token);
       const profile = await apiRequest("/auth/me");
       Auth.setSession(tokenData.access_token, profile);
@@ -42,7 +53,7 @@ async function loadAdminDashboard() {
     document.getElementById("kpi-avail").textContent = metrics.available_points;
     document.getElementById("kpi-occ").textContent = metrics.occupied_points;
     document.getElementById("kpi-energy").textContent = `${parseFloat(metrics.total_energy_kwh).toFixed(1)} kWh`;
-    document.getElementById("kpi-revenue").textContent = `$${parseFloat(metrics.total_revenue).toFixed(2)}`;
+    document.getElementById("kpi-revenue").textContent = `₹${parseFloat(metrics.total_revenue).toFixed(2)}`;
 
     // 2. Render Charts
     renderTrendChart(metrics.revenue_trend);
@@ -76,7 +87,7 @@ function renderTrendChart(trendData) {
       labels,
       datasets: [
         {
-          label: "Revenue ($)",
+          label: "Revenue (₹)",
           data: revenueData,
           borderColor: "#00d26a",
           backgroundColor: "rgba(0, 210, 106, 0.15)",
@@ -174,7 +185,7 @@ function renderStationsTable(stations, breakdown) {
 
   stations.forEach(st => {
     const points = st.charging_points || [];
-    const rev = revenueMap[st.id] ? `$${Number(revenueMap[st.id]).toFixed(2)}` : "$0.00";
+    const rev = revenueMap[st.id] ? `₹${Number(revenueMap[st.id]).toFixed(2)}` : "₹0.00";
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -230,7 +241,7 @@ function renderSessionsTable(sessions) {
       <td><small class="text-muted">${s.user_id.substring(0, 8)}...</small></td>
       <td>${new Date(s.start_time).toLocaleString()}</td>
       <td class="text-info fw-bold">${s.total_energy_kwh ? Number(s.total_energy_kwh).toFixed(2) + ' kWh' : 'Streaming...'}</td>
-      <td class="text-success fw-bold">${s.total_cost ? '$' + Number(s.total_cost).toFixed(2) : '&mdash;'}</td>
+      <td class="text-success fw-bold">${s.total_cost ? '₹' + Number(s.total_cost).toFixed(2) : '&mdash;'}</td>
       <td>
         <span class="badge ${s.status === 'COMPLETED' ? 'badge-available' : (s.status === 'IN_PROGRESS' ? 'badge-occupied' : 'badge-faulted')}">
           ${s.status}
@@ -566,6 +577,161 @@ async function handleRunTelemetryScan() {
   } catch (err) {
     showToast(err.message, "error");
     tbody.innerHTML = `<tr><td colspan="3" class="text-center py-3 text-danger">Diagnostic failed: ${err.message}</td></tr>`;
+  }
+}
+
+// ==========================================
+// GOOGLE MAPS & INTERACTIVE LOCATION PICKER
+// ==========================================
+function initMapPicker() {
+  const modalEl = document.getElementById("newStationModal");
+  if (!modalEl) return;
+
+  modalEl.addEventListener("shown.bs.modal", () => {
+    const defaultLat = 12.9716;
+    const defaultLng = 77.5946;
+
+    if (typeof L !== "undefined" && !mapPickerInstance) {
+      try {
+        mapPickerInstance = L.map("map-picker-container").setView([defaultLat, defaultLng], 12);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19
+        }).addTo(mapPickerInstance);
+
+        mapPickerMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(mapPickerInstance);
+
+        function updateCoords(lat, lng) {
+          document.getElementById("st-lat").value = lat.toFixed(6);
+          document.getElementById("st-lon").value = lng.toFixed(6);
+          reverseGeocode(lat, lng);
+        }
+
+        mapPickerInstance.on("click", (e) => {
+          const { lat, lng } = e.latlng;
+          mapPickerMarker.setLatLng([lat, lng]);
+          updateCoords(lat, lng);
+        });
+
+        mapPickerMarker.on("dragend", () => {
+          const { lat, lng } = mapPickerMarker.getLatLng();
+          updateCoords(lat, lng);
+        });
+
+        // Initialize input fields with default coordinates if empty
+        if (!document.getElementById("st-lat").value) {
+          document.getElementById("st-lat").value = defaultLat.toFixed(6);
+          document.getElementById("st-lon").value = defaultLng.toFixed(6);
+        }
+      } catch (err) {
+        console.warn("Could not initialize Leaflet map:", err);
+      }
+    }
+
+    if (mapPickerInstance) {
+      setTimeout(() => {
+        mapPickerInstance.invalidateSize();
+      }, 250);
+    }
+  });
+
+  // Google Maps coordinate parser button
+  const btnParse = document.getElementById("btn-parse-gmaps");
+  if (btnParse) {
+    btnParse.addEventListener("click", parseGoogleMapsInput);
+  }
+
+  // Quick center buttons
+  const btnCenterIndia = document.getElementById("btn-center-india");
+  if (btnCenterIndia) {
+    btnCenterIndia.addEventListener("click", () => {
+      setMapLocation(20.5937, 78.9629, 5);
+    });
+  }
+
+  const btnLocateMe = document.getElementById("btn-locate-me");
+  if (btnLocateMe) {
+    btnLocateMe.addEventListener("click", () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            setMapLocation(pos.coords.latitude, pos.coords.longitude, 14);
+            showToast("Centered on your current location!", "success");
+          },
+          err => showToast("Could not retrieve current location: " + err.message, "error")
+        );
+      } else {
+        showToast("Geolocation is not supported by your browser.", "error");
+      }
+    });
+  }
+}
+
+function setMapLocation(lat, lng, zoom = 14) {
+  if (mapPickerInstance) {
+    mapPickerInstance.setView([lat, lng], zoom);
+    if (mapPickerMarker) mapPickerMarker.setLatLng([lat, lng]);
+  }
+  document.getElementById("st-lat").value = lat.toFixed(6);
+  document.getElementById("st-lon").value = lng.toFixed(6);
+  reverseGeocode(lat, lng);
+}
+
+function parseGoogleMapsInput() {
+  const raw = document.getElementById("gmaps-input").value.trim();
+  if (!raw) {
+    showToast("Please paste a Google Maps link or coordinates.", "error");
+    return;
+  }
+
+  let lat = null, lng = null;
+
+  // Pattern 1: Direct "lat, lng" e.g. "12.9716, 77.5946" or "12.9716 77.5946"
+  const commaMatch = raw.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+  if (commaMatch) {
+    lat = parseFloat(commaMatch[1]);
+    lng = parseFloat(commaMatch[2]);
+  }
+
+  // Pattern 2: Google Maps URL containing @lat,lng e.g. https://www.google.com/maps/@12.9716,77.5946,15z
+  if (lat === null) {
+    const atMatch = raw.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (atMatch) {
+      lat = parseFloat(atMatch[1]);
+      lng = parseFloat(atMatch[2]);
+    }
+  }
+
+  // Pattern 3: Google Maps query param ?q=lat,lng
+  if (lat === null) {
+    const qMatch = raw.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (qMatch) {
+      lat = parseFloat(qMatch[1]);
+      lng = parseFloat(qMatch[2]);
+    }
+  }
+
+  if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
+    setMapLocation(lat, lng, 14);
+    showToast(`Location set from Google Maps: ${lat.toFixed(4)}, ${lng.toFixed(4)}`, "success");
+  } else {
+    showToast("Could not parse coordinates. Please enter 'lat, lng' or copy a Google Maps URL.", "error");
+  }
+}
+
+async function reverseGeocode(lat, lng) {
+  const addrInput = document.getElementById("st-address");
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+      headers: { "Accept-Language": "en" }
+    });
+    const data = await res.json();
+    if (data && data.display_name && (!addrInput.value || addrInput.value === "MG Road, Metro Pillar 140")) {
+      addrInput.value = data.display_name.split(",").slice(0, 3).join(", ");
+    }
+  } catch (_) {
+    // Non-fatal if geocoder service fails or offline
   }
 }
 

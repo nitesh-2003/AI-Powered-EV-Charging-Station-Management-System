@@ -179,7 +179,7 @@ async function loadStations() {
                         <span class="badge-connector">${p.connector_type}</span>
                         <span class="text-warning">${p.power_kw} kW</span>
                       </div>
-                      <div class="small text-muted">$${Number(p.price_per_kwh).toFixed(2)}/kWh</div>
+                      <div class="small text-muted">₹${Number(p.price_per_kwh).toFixed(2)}/kWh</div>
                     </div>
                     <div>
                       <span class="badge ${p.status === 'AVAILABLE' ? 'badge-available' : (p.status === 'OCCUPIED' ? 'badge-occupied' : 'badge-faulted')} mb-1 d-block text-center">
@@ -222,7 +222,7 @@ function openBookingModal(pointId, stationName, identifier, connector, power, pr
   document.getElementById("book-point-id").value = pointId;
   document.getElementById("book-point-summary").innerHTML = `
     <strong>${stationName}</strong> &bull; Dispenser: <strong>${identifier}</strong><br>
-    <span class="badge-connector">${connector}</span> | ${power} kW | <strong>$${price.toFixed(2)} / kWh</strong>
+    <span class="badge-connector">${connector}</span> | ${power} kW | <strong>₹${price.toFixed(2)} / kWh</strong>
   `;
 
   // Set default date to today, start time to next round hour
@@ -330,7 +330,7 @@ function startTelemetrySimulation(session) {
   telemetryInterval = setInterval(() => {
     delivered += 0.25; // simulate energy delivery
     kwhEl.textContent = delivered.toFixed(2);
-    costEl.textContent = `$${(delivered * 18.5).toFixed(2)}`;
+    costEl.textContent = `₹${(delivered * 24.0).toFixed(2)}`;
   }, 1000);
 }
 
@@ -354,7 +354,7 @@ async function handleStopCharging() {
     });
 
     stopTelemetrySimulation();
-    showToast(`Session Completed! Energy: ${res.total_energy_kwh} kWh | Total Billed: $${res.total_cost}`, "success");
+    showToast(`Session Completed! Energy: ${res.total_energy_kwh} kWh | Total Billed: ₹${res.total_cost}`, "success");
     loadStations();
   } catch (err) {
     showToast(err.message, "error");
@@ -439,7 +439,7 @@ async function loadActivityHistory() {
                 <tr>
                   <td>${new Date(s.start_time).toLocaleDateString()}</td>
                   <td class="fw-bold text-info">${s.total_energy_kwh || '0.00'} kWh</td>
-                  <td class="fw-bold text-success">$${s.total_cost || '0.00'}</td>
+                  <td class="fw-bold text-success">₹${s.total_cost || '0.00'}</td>
                   <td><code class="text-warning">${s.payment ? s.payment.transaction_ref : 'Pending'}</code></td>
                   <td>
                     <span class="badge ${s.status === 'COMPLETED' ? 'badge-available' : 'badge-occupied'}">
@@ -482,9 +482,22 @@ async function handleRunAIRecommendation() {
 
   grid.innerHTML = '<div class="col-12 text-center text-info py-5"><div class="spinner-border text-info me-2"></div> AI Engine evaluating multi-criteria ranking (proximity, bay availability, power, and tariff)...</div>';
 
-  // Driver simulated coordinates (Downtown San Francisco)
-  const userLat = 37.7749;
-  const userLon = -122.4194;
+  // Driver reference coordinates (defaulting to Bengaluru, India hub)
+  let userLat = 12.9716;
+  let userLon = 77.5946;
+
+  // Try to acquire browser geolocation if available
+  if (navigator.geolocation) {
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 1500, enableHighAccuracy: false });
+      });
+      userLat = pos.coords.latitude;
+      userLon = pos.coords.longitude;
+    } catch (_) {
+      // Graceful fallback to default Indian charging hub coordinates
+    }
+  }
 
   try {
     const response = await apiRequest("/ai/recommend-stations", {
@@ -494,7 +507,7 @@ async function handleRunAIRecommendation() {
         user_longitude: userLon,
         battery_percentage: soc,
         connector_type: connector || null,
-        max_distance_km: 75.0
+        max_distance_km: 2500.0
       })
     });
 
@@ -509,7 +522,7 @@ async function handleRunAIRecommendation() {
     countLabel.textContent = `${recs.length} AI-ranked recommendations`;
 
     if (recs.length === 0) {
-      grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">No charging stations match your criteria within 75 km.</div>';
+      grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">No charging stations match your criteria. Try changing the connector filter.</div>';
       return;
     }
 
@@ -532,7 +545,7 @@ async function handleRunAIRecommendation() {
             <div>
               <div class="mb-1">${rankBadge}</div>
               <h5 class="fw-bold mb-1 text-white">${rec.station_name}</h5>
-              <div class="text-muted small"><i class="bi bi-geo-alt"></i> ${rec.address} &bull; <strong class="text-info">${rec.distance_km} km away</strong></div>
+              <div class="text-muted small"><i class="bi bi-geo-alt text-danger me-1"></i> ${rec.address} &bull; <strong class="text-info">${rec.distance_km} km away</strong></div>
             </div>
             <span class="badge ${rec.available_points > 0 ? 'badge-available' : 'badge-occupied'}">
               ${rec.available_points} of ${rec.total_points} Open
@@ -541,12 +554,12 @@ async function handleRunAIRecommendation() {
 
           <div class="p-2 rounded bg-dark border border-secondary mb-3 small">
             <i class="bi bi-stars text-info me-1"></i>
-            <span class="text-light">${rec.recommendation_reason}</span>
+            <span class="text-light fw-medium">${rec.recommendation_reason}</span>
             <div class="d-flex gap-2 text-muted mt-1" style="font-size: 0.75rem;">
-              <span>Dist: ${rec.score_breakdown.distance_score}</span> &bull;
-              <span>Avail: ${rec.score_breakdown.availability_score}</span> &bull;
-              <span>Power: ${rec.score_breakdown.power_score}</span> &bull;
-              <span>Tariff: ${rec.score_breakdown.price_score}</span>
+              <span>Dist: <strong>${rec.score_breakdown.distance_score}</strong></span> &bull;
+              <span>Avail: <strong>${rec.score_breakdown.availability_score}</strong></span> &bull;
+              <span>Power: <strong>${rec.score_breakdown.power_score}</strong></span> &bull;
+              <span>Tariff: <strong>${rec.score_breakdown.price_score}</strong></span>
             </div>
           </div>
 
@@ -555,7 +568,7 @@ async function handleRunAIRecommendation() {
               <span class="text-muted small">Max Power:</span>
               <strong class="text-white">${rec.max_power_kw} kW</strong>
               <span class="text-muted small ms-2">From:</span>
-              <strong class="text-success">$${rec.min_price_per_kwh.toFixed(2)} / kWh</strong>
+              <strong class="text-success">₹${rec.min_price_per_kwh.toFixed(2)} / kWh</strong>
             </div>
             <button class="btn btn-outline-primary btn-sm" onclick="filterToStation('${rec.station_name}')">
               <i class="bi bi-plug-fill me-1"></i> View Bays

@@ -17,11 +17,11 @@ async def lifespan(app: FastAPI):
     if "sqlite" in str(engine.url):
         logger.info("Initializing schema tables on local SQLite database...")
         Base.metadata.create_all(bind=engine)
-        # Check if users exist; if empty, seed demo data automatically
+        # Check if stations exist; if empty, seed demo data automatically
         db = SessionLocal()
         try:
-            from app.models.user import User
-            if not db.query(User).first():
+            from app.models.station import ChargingStation
+            if not db.query(ChargingStation).first():
                 logger.info("Seeding demonstration stations, dispensers, and users...")
                 from scripts.seed_demo_data import seed
                 seed()

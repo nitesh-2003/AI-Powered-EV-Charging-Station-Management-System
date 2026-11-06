@@ -7,6 +7,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -102,7 +104,7 @@
         <div class="card kpi-card">
           <div>
             <div class="kpi-title">Simulated Revenue</div>
-            <div class="kpi-value text-success" id="kpi-revenue">$0.00</div>
+            <div class="kpi-value text-success" id="kpi-revenue">₹0.00</div>
           </div>
           <div class="kpi-icon bg-success bg-opacity-25 text-success">
             <i class="bi bi-cash-stack"></i>
@@ -253,7 +255,7 @@
               <th>Driver ID</th>
               <th>Started At</th>
               <th>Energy (kWh)</th>
-              <th>Amount ($)</th>
+              <th>Amount (₹)</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -266,39 +268,79 @@
 
   </div>
 
-  <!-- Modal: Create Station -->
+  <!-- Modal: Create Station with Google Maps & Interactive Map Location Picker -->
   <div class="modal fade" id="newStationModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-plus-circle text-primary me-2"></i> Register New Station Plaza</h5>
+          <h5 class="modal-title"><i class="bi bi-geo-alt-fill text-primary me-2"></i> Register New Station Plaza</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <form id="create-station-form">
-            <div class="mb-3">
-              <label class="form-label">Station Name</label>
-              <input type="text" id="st-name" class="form-control" placeholder="Northside Fast Charging Plaza" required>
+            <!-- Google Maps Fast Coordinate Parser -->
+            <div class="p-3 mb-3 rounded border border-info border-opacity-50" style="background: rgba(14, 165, 233, 0.08);">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-bold text-info"><i class="bi bi-google me-1"></i> Google Maps Coordinate Connector</span>
+                <a href="https://www.google.com/maps" target="_blank" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                  <i class="bi bi-box-arrow-up-right me-1"></i> Open Google Maps
+                </a>
+              </div>
+              <div class="input-group input-group-sm">
+                <input type="text" id="gmaps-input" class="form-control" placeholder="Paste Google Maps URL or 'lat, lng' (e.g., 12.9716, 77.5946)...">
+                <button type="button" class="btn btn-info text-dark fw-bold" id="btn-parse-gmaps">
+                  <i class="bi bi-check-lg"></i> Apply Location
+                </button>
+              </div>
+              <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                Tip: Right-click any location on Google Maps, click the coordinates to copy, and paste here.
+              </small>
             </div>
+
+            <!-- Interactive Map Picker -->
             <div class="mb-3">
-              <label class="form-label">Street Address</label>
-              <input type="text" id="st-address" class="form-control" placeholder="789 Clean Energy Blvd" required>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0 small text-white fw-bold"><i class="bi bi-map me-1 text-primary"></i> Click on Map to Drop Pin:</label>
+                <div class="d-flex gap-1">
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-locate-me" style="font-size: 0.75rem;">
+                    <i class="bi bi-crosshair"></i> Current Location
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-center-india" style="font-size: 0.75rem;">
+                    🇮🇳 Center India
+                  </button>
+                </div>
+              </div>
+              <div id="map-picker-container" style="height: 250px; border-radius: 8px; border: 1px solid #475569;">
+                <div class="map-crosshair-hint">Click anywhere on the map to pin station coordinates</div>
+              </div>
             </div>
+
             <div class="row g-2 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Station Name</label>
+                <input type="text" id="st-name" class="form-control" placeholder="Downtown Supercharger Hub" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Street Address</label>
+                <input type="text" id="st-address" class="form-control" placeholder="MG Road, Metro Pillar 140" required>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-2">
               <div class="col-6">
-                <label class="form-label">Latitude</label>
-                <input type="number" step="any" id="st-lat" class="form-control" placeholder="12.9716" required>
+                <label class="form-label small text-muted">Latitude</label>
+                <input type="number" step="any" id="st-lat" class="form-control form-control-sm" placeholder="12.9716" required>
               </div>
               <div class="col-6">
-                <label class="form-label">Longitude</label>
-                <input type="number" step="any" id="st-lon" class="form-control" placeholder="77.5946" required>
+                <label class="form-label small text-muted">Longitude</label>
+                <input type="number" step="any" id="st-lon" class="form-control form-control-sm" placeholder="77.5946" required>
               </div>
             </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary-ev btn-sm" id="btn-save-station">Save Station</button>
+          <button type="button" class="btn btn-primary-ev btn-sm" id="btn-save-station">Save Station Plaza</button>
         </div>
       </div>
     </div>
@@ -334,8 +376,8 @@
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Tariff Rate ($ per kWh)</label>
-              <input type="number" step="0.01" id="cp-price" class="form-control" placeholder="18.50" required>
+              <label class="form-label">Tariff Rate (₹ per kWh)</label>
+              <input type="number" step="0.01" id="cp-price" class="form-control" placeholder="24.00" required>
             </div>
           </form>
         </div>
