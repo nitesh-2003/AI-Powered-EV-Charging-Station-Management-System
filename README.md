@@ -604,18 +604,3 @@ production data.
 
 ------------------------------------------------------------------------
 
-## Documentation
-
-For the detailed development history, implementation walkthrough,
-database design, endpoint catalogue, model evaluation, security
-decisions, and interview preparation notes, see:
-
-[`PROJECT_DEVELOPMENT_AND_TECHNICAL_DOCUMENTATION.md`](PROJECT_DEVELOPMENT_AND_TECHNICAL_DOCUMENTATION.md)
-
-------------------------------------------------------------------------
-
-## License
-
-No license has been specified in the project documentation. Add a
-`LICENSE` file before presenting the repository as open source, and
-choose a license that matches how you want others to use the code.
