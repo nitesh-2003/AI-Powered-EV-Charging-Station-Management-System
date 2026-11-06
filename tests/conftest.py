@@ -80,3 +80,4 @@ def db_session():
 def client():
     """Provides an ASGITransport instance for HTTP client tests."""
     return ASGITransport(app=app)
+
