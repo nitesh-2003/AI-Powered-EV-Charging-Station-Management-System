@@ -54,3 +54,4 @@ jobs:
           file: ./Dockerfile
           push: false
           tags: voltflow-api:latest
+
