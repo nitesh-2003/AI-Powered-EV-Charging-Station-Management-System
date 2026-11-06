@@ -61,3 +61,4 @@ class Payment(TimestampedModel):
 
     def __repr__(self) -> str:
         return f"<Payment id={self.id} amount={self.amount} status={self.status}>"
+

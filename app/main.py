@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
@@ -13,7 +15,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Set up CORS (Cross-Origin Resource Sharing) middleware
+# Set up CORS middleware
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
@@ -26,14 +28,7 @@ if settings.BACKEND_CORS_ORIGINS:
 # Include API v1 router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-
-@app.get("/", tags=["Root"])
-def root():
-    """Root endpoint welcoming visitors and pointing to the interactive API documentation."""
-    return {
-        "message": f"Welcome to the {settings.PROJECT_NAME} API.",
-        "documentation": "/docs",
-        "health_check": f"{settings.API_V1_STR}/health",
-        "status": "online",
-    }
-
+# Mount frontend web application static files
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+if os.path.isdir(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

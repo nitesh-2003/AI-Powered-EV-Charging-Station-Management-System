@@ -105,3 +105,4 @@ def cancel_booking(
 ):
     """Cancels a confirmed reservation."""
     return BookingService.cancel_booking(db, booking_id=booking_id, user=current_user)
+

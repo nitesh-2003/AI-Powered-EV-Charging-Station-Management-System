@@ -97,3 +97,4 @@ def get_session_details(
             detail="Access denied to session details",
         )
     return session
+

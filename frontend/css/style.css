@@ -1,0 +1,189 @@
+:root {
+  --primary-color: #00d26a;
+  --primary-hover: #00b058;
+  --secondary-color: #0dcaf0;
+  --bg-dark: #0f172a;
+  --card-dark: #1e293b;
+  --border-color: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+.navbar {
+  background-color: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--primary-color) !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-main);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 210, 106, 0.15);
+  border-color: rgba(0, 210, 106, 0.4);
+}
+
+.kpi-card {
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.kpi-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.badge-status {
+  padding: 0.35em 0.65em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.badge-available {
+  background-color: rgba(0, 210, 106, 0.15);
+  color: #00d26a;
+  border: 1px solid rgba(0, 210, 106, 0.3);
+}
+
+.badge-occupied {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-faulted {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-connector {
+  background-color: rgba(13, 202, 240, 0.15);
+  color: #0dcaf0;
+  border: 1px solid rgba(13, 202, 240, 0.3);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.btn-primary-ev {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.btn-primary-ev:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #0f172a;
+}
+
+.btn-outline-ev {
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+.btn-outline-ev:hover {
+  background-color: var(--border-color);
+  color: #fff;
+}
+
+.form-control, .form-select {
+  background-color: #0b1120;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 8px;
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: #0b1120;
+  border-color: var(--primary-color);
+  color: var(--text-main);
+  box-shadow: 0 0 0 0.25rem rgba(0, 210, 106, 0.2);
+}
+
+.table-dark-custom {
+  --bs-table-bg: var(--card-dark);
+  --bs-table-border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+.table-dark-custom th {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.modal-content {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 12px;
+}
+
+.modal-header, .modal-footer {
+  border-color: var(--border-color);
+}
+
+.telemetry-dial {
+  border: 2px dashed var(--primary-color);
+  background: rgba(0, 210, 106, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.telemetry-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary-color);
+}

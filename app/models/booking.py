@@ -67,3 +67,4 @@ class Booking(TimestampedModel):
 
     def __repr__(self) -> str:
         return f"<Booking id={self.id} point_id={self.charging_point_id} status={self.status}>"
+

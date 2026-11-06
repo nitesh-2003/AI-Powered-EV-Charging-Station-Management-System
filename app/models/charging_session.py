@@ -102,3 +102,4 @@ class ChargingSession(TimestampedModel):
 
     def __repr__(self) -> str:
         return f"<ChargingSession id={self.id} status={self.status} kwh={self.total_energy_kwh}>"
+

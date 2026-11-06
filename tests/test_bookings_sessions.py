@@ -192,3 +192,4 @@ async def test_bookings_concurrency_overlap_and_sessions_billing_flow():
 
         # 11. Cleanup test station
         await ac.delete(f"{settings.API_V1_STR}/stations/{station_id}", headers=admin_headers)
+

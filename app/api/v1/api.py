@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     charging_points,
     bookings,
     sessions,
+    analytics,
 )
 
 api_router = APIRouter()
@@ -17,3 +18,4 @@ api_router.include_router(stations.router, prefix="/stations", tags=["Charging S
 api_router.include_router(charging_points.router, prefix="/points", tags=["Charging Points (EVSE)"])
 api_router.include_router(bookings.router, prefix="/bookings", tags=["Bookings & Reservations"])
 api_router.include_router(sessions.router, prefix="/sessions", tags=["Charging Sessions & Billing"])
+api_router.include_router(analytics.router, prefix="/analytics", tags=["Operational Analytics"])

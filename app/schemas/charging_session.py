@@ -43,3 +43,4 @@ class SessionResponse(BaseModel):
     payment: Optional[PaymentResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+

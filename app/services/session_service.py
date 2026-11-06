@@ -223,3 +223,4 @@ class SessionService:
         if status:
             query = query.filter(ChargingSession.status == status.upper().strip())
         return query.order_by(ChargingSession.start_time.desc()).all()
+
