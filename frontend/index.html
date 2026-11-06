@@ -79,6 +79,55 @@
       </div>
     </div>
 
+    <!-- AI Smart Station Recommendation Engine Panel -->
+    <div class="card p-3 mb-4 shadow-sm border-info" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-stars text-info fs-5"></i>
+          <div>
+            <h6 class="fw-bold mb-0 text-white">AI Intelligent Station Recommender</h6>
+            <small class="text-muted">Adaptive Multi-Factor Scoring (Distance, Availability, Speed & Tariff)</small>
+          </div>
+        </div>
+        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50">ML Feature 2</span>
+      </div>
+
+      <div class="row g-3 align-items-center mt-1">
+        <div class="col-md-5">
+          <label class="form-label text-muted small d-flex justify-content-between mb-1">
+            <span>Current Battery Level (State of Charge):</span>
+            <span class="text-info fw-bold" id="label-soc-val">35%</span>
+          </label>
+          <input type="range" class="form-range" id="input-battery-soc" min="5" max="95" value="35" step="1">
+          <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem;">
+            <span class="text-danger">Critical (&lt;20%)</span>
+            <span class="text-warning">Moderate (20-60%)</span>
+            <span class="text-success">Optimal (&gt;60%)</span>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label text-muted small mb-1">Connector Compatibility</label>
+          <select id="ai-filter-connector" class="form-select form-select-sm bg-dark text-white border-secondary">
+            <option value="">Any Connector Standard</option>
+            <option value="CCS2">CCS2 (DC Fast Charge)</option>
+            <option value="TYPE2">Type 2 (AC Normal)</option>
+            <option value="CHADEMO">CHAdeMO</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <button class="btn btn-outline-info btn-sm w-100 py-2 mt-md-3" id="btn-run-ai-recommendation">
+            <i class="bi bi-magic me-1"></i> Smart Rank Stations
+          </button>
+        </div>
+      </div>
+
+      <div id="ai-soc-alert-banner" class="alert alert-warning py-2 px-3 mt-3 mb-0 small d-none" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> <span id="ai-soc-alert-text"></span>
+      </div>
+    </div>
+
     <!-- Search & Filters Section -->
     <div class="card p-3 mb-4 shadow-sm">
       <div class="row g-2 align-items-center">
@@ -99,8 +148,8 @@
         <div class="col-md-2">
           <select id="filter-power" class="form-select">
             <option value="">Any Power</option>
-            <option value="50">>= 50 kW</option>
-            <option value="120">>= 120 kW</option>
+            <option value="50">&gt;= 50 kW</option>
+            <option value="120">&gt;= 120 kW</option>
           </select>
         </div>
         <div class="col-md-2">
@@ -234,6 +283,68 @@
               </select>
             </div>
             <button type="submit" class="btn btn-primary-ev w-100 mt-2" id="auth-submit-btn">Sign In</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating AI Assistant Chat Button -->
+  <button id="btn-open-chat" class="btn btn-primary-ev chat-fab rounded-pill px-3 py-2" data-bs-toggle="modal" data-bs-target="#aiChatModal">
+    <i class="bi bi-robot me-1 fs-5"></i> <span>Ask EV AI</span>
+  </button>
+
+  <!-- AI Assistant Chat Modal -->
+  <div class="modal fade" id="aiChatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content" style="border: 1px solid #0284c7; box-shadow: 0 10px 40px rgba(2, 132, 199, 0.35);">
+        <div class="modal-header py-2" style="background: linear-gradient(90deg, #0f172a, #1e293b);">
+          <div class="d-flex align-items-center gap-2">
+            <div class="p-2 rounded-circle bg-info bg-opacity-25 text-info">
+              <i class="bi bi-robot fs-5"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-white mb-0">VoltFlow AI Mobility Assistant</h6>
+              <small class="text-muted">Hybrid RAG Knowledge Engine & Real-Time Telemetry Grounding</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body p-3">
+          <!-- Suggestion Prompt Pills -->
+          <div class="d-flex gap-2 mb-3 overflow-auto pb-1" style="white-space: nowrap;">
+            <button class="btn btn-outline-secondary btn-sm rounded-pill chat-suggestion" data-prompt="Which charging stations are available right now?">
+              ⚡ Open Bays
+            </button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill chat-suggestion" data-prompt="What is the reservation cancellation policy and fee?">
+              📜 Cancellation Rules
+            </button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill chat-suggestion" data-prompt="What is an idle fee and when does it apply?">
+              ⏱️ Anti-Idling Fees
+            </button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill chat-suggestion" data-prompt="Show me my recent charging sessions and spend">
+              📊 My History
+            </button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill chat-suggestion" data-prompt="Is it safe to charge during rain and wet weather?">
+              🌧️ Rain Safety
+            </button>
+          </div>
+
+          <!-- Chat Messages Container -->
+          <div id="chat-messages-container" class="d-flex flex-column gap-3 p-3 rounded mb-3" style="background: #090d16; min-height: 320px; max-height: 420px; overflow-y: auto;">
+            <div class="chat-bubble-ai">
+              👋 Hello! I am your <strong>VoltFlow AI Assistant</strong>.
+              I can check live dispenser availability, explain cancellation rules, detail tariff rates, or guide you through hardware troubleshooting. What would you like to know?
+            </div>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <form id="chat-form" class="d-flex gap-2">
+            <input type="text" id="chat-input-text" class="form-control bg-dark text-white border-secondary" placeholder="Ask about stations, tariffs, policies, or your history..." autocomplete="off" required>
+            <button type="submit" class="btn btn-primary-ev px-3" id="btn-chat-send">
+              <i class="bi bi-send-fill"></i>
+            </button>
           </form>
         </div>
       </div>

@@ -7,6 +7,8 @@ from app.api.v1.endpoints import (
     bookings,
     sessions,
     analytics,
+    ai,
+    assistant,
 )
 
 api_router = APIRouter()
@@ -19,3 +21,5 @@ api_router.include_router(charging_points.router, prefix="/points", tags=["Charg
 api_router.include_router(bookings.router, prefix="/bookings", tags=["Bookings & Reservations"])
 api_router.include_router(sessions.router, prefix="/sessions", tags=["Charging Sessions & Billing"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Operational Analytics"])
+api_router.include_router(ai.router, prefix="/ai", tags=["Machine Learning & AI"])
+api_router.include_router(assistant.router, prefix="/assistant", tags=["Generative AI & RAG Assistant"])

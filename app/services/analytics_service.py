@@ -65,6 +65,20 @@ class AnalyticsService:
             .scalar()
         )
 
+        # Pre-aggregate station session counts and revenue in a single GROUP BY query (prevents N+1 query issue)
+        session_aggregates = (
+            db.query(
+                ChargingPoint.station_id,
+                func.count(ChargingSession.id).label("total_sessions"),
+                func.coalesce(func.sum(ChargingSession.total_cost), Decimal("0.00")).label("total_revenue"),
+            )
+            .join(ChargingSession, ChargingSession.charging_point_id == ChargingPoint.id)
+            .filter(ChargingSession.status == "COMPLETED")
+            .group_by(ChargingPoint.station_id)
+            .all()
+        )
+        station_session_map = {row[0]: (row[1], row[2]) for row in session_aggregates}
+
         # Station-wise breakdown
         stations = db.query(ChargingStation).all()
         station_breakdown: List[StationAnalytics] = []
@@ -72,26 +86,8 @@ class AnalyticsService:
             points = st.charging_points
             avail = sum(1 for p in points if p.status == "AVAILABLE")
             occ = sum(1 for p in points if p.status == "OCCUPIED")
-            point_ids = [p.id for p in points]
 
-            if point_ids:
-                st_sessions = (
-                    db.query(func.count(ChargingSession.id))
-                    .filter(ChargingSession.charging_point_id.in_(point_ids))
-                    .scalar()
-                    or 0
-                )
-                st_rev = (
-                    db.query(func.coalesce(func.sum(ChargingSession.total_cost), Decimal("0.00")))
-                    .filter(
-                        ChargingSession.charging_point_id.in_(point_ids),
-                        ChargingSession.status == "COMPLETED",
-                    )
-                    .scalar()
-                )
-            else:
-                st_sessions = 0
-                st_rev = Decimal("0.00")
+            st_sessions, st_rev = station_session_map.get(st.id, (0, Decimal("0.00")))
 
             station_breakdown.append(
                 StationAnalytics(
@@ -105,48 +101,42 @@ class AnalyticsService:
                 )
             )
 
-        # 7-day revenue & session trend
-        revenue_trend: List[Dict[str, Any]] = []
+        # 7-day revenue & session trend aggregated in a single query
         today = datetime.now(timezone.utc).date()
+        seven_days_ago = datetime.combine(today - timedelta(days=6), datetime.min.time(), tzinfo=timezone.utc)
+
+        daily_aggregates = (
+            db.query(
+                func.date(ChargingSession.created_at).label("day"),
+                func.coalesce(func.sum(ChargingSession.total_cost), Decimal("0.00")).label("rev"),
+                func.coalesce(func.sum(ChargingSession.total_energy_kwh), Decimal("0.00")).label("energy"),
+                func.count(ChargingSession.id).label("sessions"),
+            )
+            .filter(
+                ChargingSession.created_at >= seven_days_ago,
+                ChargingSession.status == "COMPLETED",
+            )
+            .group_by(func.date(ChargingSession.created_at))
+            .all()
+        )
+        daily_map = {row[0]: (row[1], row[2], row[3]) for row in daily_aggregates}
+
+        revenue_trend: List[Dict[str, Any]] = []
         for i in range(6, -1, -1):
             day = today - timedelta(days=i)
-            day_start = datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc)
-            day_end = datetime.combine(day, datetime.max.time(), tzinfo=timezone.utc)
-
-            day_rev = (
-                db.query(func.coalesce(func.sum(ChargingSession.total_cost), Decimal("0.00")))
-                .filter(
-                    ChargingSession.status == "COMPLETED",
-                    ChargingSession.created_at >= day_start,
-                    ChargingSession.created_at <= day_end,
-                )
-                .scalar()
-            )
-            day_energy = (
-                db.query(func.coalesce(func.sum(ChargingSession.total_energy_kwh), Decimal("0.00")))
-                .filter(
-                    ChargingSession.status == "COMPLETED",
-                    ChargingSession.created_at >= day_start,
-                    ChargingSession.created_at <= day_end,
-                )
-                .scalar()
-            )
-            day_count = (
-                db.query(func.count(ChargingSession.id))
-                .filter(
-                    ChargingSession.created_at >= day_start,
-                    ChargingSession.created_at <= day_end,
-                )
-                .scalar()
-                or 0
-            )
+            # Match day string or date object
+            stats = daily_map.get(day) or daily_map.get(str(day))
+            if stats:
+                d_rev, d_energy, d_count = stats
+            else:
+                d_rev, d_energy, d_count = Decimal("0.00"), Decimal("0.00"), 0
 
             revenue_trend.append(
                 {
                     "date": day.strftime("%b %d"),
-                    "revenue": float(day_rev),
-                    "energy_kwh": float(day_energy),
-                    "sessions": day_count,
+                    "revenue": float(d_rev),
+                    "energy_kwh": float(d_energy),
+                    "sessions": d_count,
                 }
             )
 

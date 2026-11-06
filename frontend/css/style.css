@@ -188,3 +188,44 @@ body {
   color: var(--primary-color);
 }
 
+/* AI Assistant Chat Widget */
+.chat-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1060;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.4);
+}
+
+.chat-bubble-user {
+  background: #0284c7;
+  color: #ffffff;
+  border-radius: 14px 14px 2px 14px;
+  padding: 10px 14px;
+  max-width: 82%;
+  margin-left: auto;
+  font-size: 0.9rem;
+}
+
+.chat-bubble-ai {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  border-radius: 14px 14px 14px 2px;
+  padding: 12px 16px;
+  max-width: 88%;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.chat-source-tag {
+  font-size: 0.72rem;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  color: #38bdf8;
+  border-radius: 6px;
+  padding: 2px 8px;
+  display: inline-block;
+  margin-top: 4px;
+}
+

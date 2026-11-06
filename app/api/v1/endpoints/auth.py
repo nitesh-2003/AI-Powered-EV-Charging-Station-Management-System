@@ -35,6 +35,14 @@ def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists.",
         )
+
+    # Security check: Prevent public creation of ADMIN accounts in non-DEBUG production mode
+    if user_in.role.upper() == "ADMIN" and not settings.DEBUG:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Public administrator registration is strictly prohibited.",
+        )
+
     return UserService.create(db, user_in=user_in)
 
 

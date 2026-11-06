@@ -51,7 +51,10 @@ async function loadAdminDashboard() {
     // 3. Render Stations Table
     renderStationsTable(stations, metrics.station_breakdown);
 
-    // 4. Render Live Sessions Stream
+    // 4. Initialize AI Intelligence Suite (Demand Forecaster & Telemetry Sentinel)
+    initAIIntelligenceSuite(stations);
+
+    // 5. Render Live Sessions Stream
     renderSessionsTable(sessions);
 
   } catch (err) {
@@ -322,6 +325,247 @@ async function deleteStation(stationId) {
     loadAdminDashboard();
   } catch (err) {
     showToast(err.message, "error");
+  }
+}
+
+// ==========================================
+// AI & MACHINE LEARNING INTELLIGENCE SUITE
+// ==========================================
+let demandChartInstance = null;
+
+function initAIIntelligenceSuite(stations) {
+  const stationSelect = document.getElementById("ai-demand-station-select");
+  const dateInput = document.getElementById("ai-demand-date-input");
+
+  // Populate stations dropdown
+  if (stationSelect && stations) {
+    stationSelect.innerHTML = '<option value="">Select a Station Plaza...</option>' +
+      stations.map(st => `<option value="${st.id}">${st.name}</option>`).join("");
+    if (stations.length > 0) stationSelect.selectedIndex = 1;
+  }
+
+  // Set default forecast date to tomorrow
+  if (dateInput && !dateInput.value) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    dateInput.value = tomorrow.toISOString().split("T")[0];
+  }
+
+  const btnDemand = document.getElementById("btn-run-demand-forecast");
+  if (btnDemand && !btnDemand.dataset.bound) {
+    btnDemand.dataset.bound = "true";
+    btnDemand.addEventListener("click", handleRunDemandForecast);
+  }
+
+  const btnScan = document.getElementById("btn-run-telemetry-scan");
+  if (btnScan && !btnScan.dataset.bound) {
+    btnScan.dataset.bound = "true";
+    btnScan.addEventListener("click", handleRunTelemetryScan);
+  }
+}
+
+async function handleRunDemandForecast() {
+  const stationId = document.getElementById("ai-demand-station-select").value;
+  const targetDate = document.getElementById("ai-demand-date-input").value;
+
+  if (!stationId) {
+    showToast("Please select a target station for demand forecasting.", "error");
+    return;
+  }
+  if (!targetDate) {
+    showToast("Please choose a valid forecast date.", "error");
+    return;
+  }
+
+  try {
+    const forecast = await apiRequest("/ai/predict-demand", {
+      method: "POST",
+      body: JSON.stringify({
+        station_id: stationId,
+        target_date: targetDate,
+        temperature_c: 26.5
+      })
+    });
+
+    // Update KPI summary pills
+    const pillContainer = document.getElementById("ai-demand-summary-pills");
+    pillContainer.classList.remove("d-none");
+    document.getElementById("pill-peak-hour").textContent = `Peak Window: ${forecast.peak_hour}:00 - ${(forecast.peak_hour + 1) % 24}:00`;
+    document.getElementById("pill-peak-level").textContent = `Congestion: ${forecast.peak_demand_level}`;
+    document.getElementById("pill-total-sessions").textContent = `Forecast: ${forecast.total_predicted_sessions} Sessions`;
+    document.getElementById("pill-total-energy").textContent = `Est. Energy: ${forecast.total_predicted_energy_kwh} kWh`;
+
+    renderDemandChart(forecast.hourly_forecast);
+    showToast(`AI forecast generated for ${forecast.station_name}!`, "success");
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+function renderDemandChart(hourlyForecast) {
+  const ctx = document.getElementById("demandForecastChart");
+  if (!ctx) return;
+
+  if (demandChartInstance) {
+    demandChartInstance.destroy();
+  }
+
+  const labels = hourlyForecast.map(h => `${h.hour}:00`);
+  const sessionData = hourlyForecast.map(h => h.predicted_sessions);
+  const energyData = hourlyForecast.map(h => h.predicted_energy_kwh);
+
+  demandChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Predicted Charging Sessions",
+          data: sessionData,
+          backgroundColor: "rgba(14, 165, 233, 0.65)",
+          borderColor: "#0ea5e9",
+          borderWidth: 1.5,
+          borderRadius: 4,
+          yAxisID: "y"
+        },
+        {
+          label: "Predicted Energy Demand (kWh)",
+          data: energyData,
+          type: "line",
+          borderColor: "#10b981",
+          backgroundColor: "transparent",
+          borderWidth: 2,
+          tension: 0.35,
+          pointRadius: 2.5,
+          yAxisID: "y1"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: "#94a3b8", font: { size: 11 } }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#64748b", maxTicksLimit: 12 },
+          grid: { display: false }
+        },
+        y: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#64748b" },
+          grid: { color: "#334155" },
+          title: { display: true, text: "Sessions", color: "#0ea5e9" }
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          ticks: { color: "#64748b" },
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: "Energy (kWh)", color: "#10b981" }
+        }
+      }
+    }
+  });
+}
+
+async function handleRunTelemetryScan() {
+  const tbody = document.getElementById("telemetry-anomalies-tbody");
+  tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-info"><div class="spinner-border spinner-border-sm me-2"></div>Evaluating fleet telemetry vectors with Isolation Forest...</td></tr>';
+
+  // Sample fleet readings covering normal operating chargers and fault conditions
+  const sampleBatch = {
+    readings: [
+      {
+        charging_point_id: "00000000-0000-0000-0000-000000000001",
+        voltage_v: 285.0,  // VOLTAGE SAG
+        current_a: 330.0,
+        power_kw: 94.05,
+        battery_soc_pct: 60.0,
+        charging_duration_minutes: 22.0,
+        energy_consumed_kwh: 34.5,
+        temperature_c: 54.0
+      },
+      {
+        charging_point_id: "00000000-0000-0000-0000-000000000002",
+        voltage_v: 398.0,  // OVERHEATING
+        current_a: 210.0,
+        power_kw: 83.58,
+        battery_soc_pct: 72.0,
+        charging_duration_minutes: 40.0,
+        energy_consumed_kwh: 45.0,
+        temperature_c: 84.5
+      },
+      {
+        charging_point_id: "00000000-0000-0000-0000-000000000003",
+        voltage_v: 405.0,
+        current_a: 140.0,
+        power_kw: 56.7,
+        battery_soc_pct: 45.0,
+        charging_duration_minutes: 20.0,
+        energy_consumed_kwh: 18.9,
+        temperature_c: 41.0
+      },
+      {
+        charging_point_id: "00000000-0000-0000-0000-000000000004",
+        voltage_v: 400.0,
+        current_a: 125.0,
+        power_kw: 50.0,
+        battery_soc_pct: 55.0,
+        charging_duration_minutes: 15.0,
+        energy_consumed_kwh: 0.0,  // METER SENSOR GLITCH
+        temperature_c: 38.0
+      }
+    ]
+  };
+
+  try {
+    const report = await apiRequest("/ai/inspect-fleet-telemetry", {
+      method: "POST",
+      body: JSON.stringify(sampleBatch)
+    });
+
+    if (report.results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">No readings inspected.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = report.results.map((r, idx) => {
+      let badgeClass = "bg-secondary";
+      if (r.severity === "CRITICAL") badgeClass = "bg-danger";
+      else if (r.severity === "HIGH") badgeClass = "bg-warning text-dark";
+      else if (r.severity === "MEDIUM") badgeClass = "bg-info text-dark";
+      else if (r.severity === "NORMAL") badgeClass = "bg-success";
+
+      const title = r.detected_irregularities.length > 0
+        ? r.detected_irregularities[0]
+        : "Nominal electrical telemetry";
+
+      return `
+        <tr>
+          <td>
+            <div class="fw-semibold text-white">${title}</div>
+            <div class="text-muted small">${r.recommended_action}</div>
+          </td>
+          <td><span class="badge ${badgeClass}">${r.severity}</span></td>
+          <td>
+            <span class="text-${r.is_anomaly ? 'danger' : 'success'} fw-semibold">
+              <i class="bi bi-${r.is_anomaly ? 'exclamation-triangle-fill' : 'check-circle-fill'} me-1"></i>
+              ${r.is_anomaly ? 'Anomaly Flagged' : 'Healthy'}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    showToast(`Fleet Scan Complete: ${report.anomalies_detected} anomalies detected.`, "info");
+  } catch (err) {
+    showToast(err.message, "error");
+    tbody.innerHTML = `<tr><td colspan="3" class="text-center py-3 text-danger">Diagnostic failed: ${err.message}</td></tr>`;
   }
 }
 

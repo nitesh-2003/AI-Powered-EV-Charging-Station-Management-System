@@ -67,11 +67,13 @@ def get_my_sessions(
 )
 def list_all_sessions(
     status: Optional[str] = Query(None, description="Filter: 'IN_PROGRESS', 'COMPLETED', 'STOPPED'"),
+    skip: int = Query(0, ge=0, description="Pagination offset"),
+    limit: int = Query(100, ge=1, le=500, description="Pagination limit"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
     """Admin-only monitoring of all charging sessions across the network."""
-    return SessionService.get_all(db, status=status)
+    return SessionService.get_all(db, status=status, skip=skip, limit=limit)
 
 
 @router.get(

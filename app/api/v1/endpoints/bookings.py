@@ -61,11 +61,13 @@ def get_my_bookings(
 )
 def list_all_bookings(
     status: Optional[str] = Query(None, description="Filter: 'CONFIRMED', 'CANCELLED', 'COMPLETED'"),
+    skip: int = Query(0, ge=0, description="Pagination offset"),
+    limit: int = Query(100, ge=1, le=500, description="Pagination limit"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
     """Admin-only view of all reservations across the charging network."""
-    return BookingService.get_all(db, status=status)
+    return BookingService.get_all(db, status=status, skip=skip, limit=limit)
 
 
 @router.get(

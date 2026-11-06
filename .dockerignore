@@ -1,0 +1,16 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+*.md
+!docs/**/*.md
+tests/
+.pytest_cache/
+.env
+.env.local
+*.egg-info/
+ml_data/chroma_db/
+.idea/
+.vscode/

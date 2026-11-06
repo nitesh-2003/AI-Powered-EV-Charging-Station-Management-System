@@ -55,7 +55,8 @@ async function apiRequest(endpoint, options = {}) {
 
     if (!response.ok) {
       const errorMsg = data?.detail || `HTTP Error ${response.status}`;
-      if (response.status === 401) {
+      // Do not trigger logout/reload on credentials validation failure during login
+      if (response.status === 401 && !endpoint.includes("/auth/login") && !endpoint.includes("/auth/register")) {
         Auth.logout();
       }
       throw new Error(errorMsg);

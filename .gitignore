@@ -41,7 +41,13 @@ env/
 *.sqlite3
 *.db
 
-# Vector store data
+# ML Trained Models (regenerate via training scripts)
+ml_models/
+
+# ML Training Data (regenerate via dataset generators)
+ml_data/
+
+# Vector Store Data (re-index from docs/knowledge_base/)
 chroma_data/
 *.chroma
 
@@ -59,4 +65,3 @@ htmlcov/
 # Logs
 *.log
 logs/
-

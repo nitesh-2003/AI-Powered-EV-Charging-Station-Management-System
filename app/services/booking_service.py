@@ -110,12 +110,17 @@ class BookingService:
         )
 
     @staticmethod
-    def get_all(db: Session, status: Optional[str] = None) -> List[Booking]:
-        """Admin query: fetch all bookings across the network with optional status filter."""
+    def get_all(
+        db: Session,
+        status: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[Booking]:
+        """Admin query: fetch all bookings across the network with optional status filter and pagination."""
         query = db.query(Booking)
         if status:
             query = query.filter(Booking.status == status.upper().strip())
-        return query.order_by(Booking.start_time.desc()).all()
+        return query.order_by(Booking.start_time.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
     def cancel_booking(

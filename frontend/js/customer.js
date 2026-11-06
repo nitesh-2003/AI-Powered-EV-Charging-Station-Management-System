@@ -11,6 +11,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") loadStations();
   });
 
+  // AI Recommendation Controls
+  const socSlider = document.getElementById("input-battery-soc");
+  if (socSlider) {
+    socSlider.addEventListener("input", (e) => {
+      document.getElementById("label-soc-val").textContent = `${e.target.value}%`;
+    });
+  }
+  const btnAiRec = document.getElementById("btn-run-ai-recommendation");
+  if (btnAiRec) {
+    btnAiRec.addEventListener("click", handleRunAIRecommendation);
+  }
+
   document.getElementById("auth-form").addEventListener("submit", handleAuthSubmit);
   document.getElementById("btn-submit-booking").addEventListener("click", handleBookingSubmit);
   document.getElementById("btn-stop-charging").addEventListener("click", handleStopCharging);
@@ -456,4 +468,213 @@ async function cancelBooking(bookingId) {
     showToast(err.message, "error");
   }
 }
+
+// ==========================================
+// AI FEATURE 2: INTELLIGENT STATION RECOMMENDATION
+// ==========================================
+async function handleRunAIRecommendation() {
+  const soc = parseFloat(document.getElementById("input-battery-soc").value);
+  const connector = document.getElementById("ai-filter-connector").value;
+  const grid = document.getElementById("stations-grid");
+  const countLabel = document.getElementById("stations-count");
+  const alertBanner = document.getElementById("ai-soc-alert-banner");
+  const alertText = document.getElementById("ai-soc-alert-text");
+
+  grid.innerHTML = '<div class="col-12 text-center text-info py-5"><div class="spinner-border text-info me-2"></div> AI Engine evaluating multi-criteria ranking (proximity, bay availability, power, and tariff)...</div>';
+
+  // Driver simulated coordinates (Downtown San Francisco)
+  const userLat = 37.7749;
+  const userLon = -122.4194;
+
+  try {
+    const response = await apiRequest("/ai/recommend-stations", {
+      method: "POST",
+      body: JSON.stringify({
+        user_latitude: userLat,
+        user_longitude: userLon,
+        battery_percentage: soc,
+        connector_type: connector || null,
+        max_distance_km: 75.0
+      })
+    });
+
+    if (response.battery_soc_alert) {
+      alertText.textContent = response.battery_soc_alert;
+      alertBanner.classList.remove("d-none");
+    } else {
+      alertBanner.classList.add("d-none");
+    }
+
+    const recs = response.recommendations || [];
+    countLabel.textContent = `${recs.length} AI-ranked recommendations`;
+
+    if (recs.length === 0) {
+      grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">No charging stations match your criteria within 75 km.</div>';
+      return;
+    }
+
+    grid.innerHTML = "";
+    recs.forEach(rec => {
+      const isTopPick = rec.rank === 1;
+      const card = document.createElement("div");
+      card.className = "col-lg-6 col-12";
+
+      let rankBadge = `<span class="badge bg-secondary">Rank #${rec.rank} • Score: ${rec.recommendation_score}/100</span>`;
+      let borderStyle = "";
+      if (isTopPick) {
+        rankBadge = `<span class="badge bg-warning text-dark fw-bold"><i class="bi bi-trophy-fill me-1"></i> TOP AI MATCH (#1) • Score: ${rec.recommendation_score}/100</span>`;
+        borderStyle = "border: 1.5px solid #f59e0b;";
+      }
+
+      card.innerHTML = `
+        <div class="card card-hover h-100 p-3" style="${borderStyle}">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="mb-1">${rankBadge}</div>
+              <h5 class="fw-bold mb-1 text-white">${rec.station_name}</h5>
+              <div class="text-muted small"><i class="bi bi-geo-alt"></i> ${rec.address} &bull; <strong class="text-info">${rec.distance_km} km away</strong></div>
+            </div>
+            <span class="badge ${rec.available_points > 0 ? 'badge-available' : 'badge-occupied'}">
+              ${rec.available_points} of ${rec.total_points} Open
+            </span>
+          </div>
+
+          <div class="p-2 rounded bg-dark border border-secondary mb-3 small">
+            <i class="bi bi-stars text-info me-1"></i>
+            <span class="text-light">${rec.recommendation_reason}</span>
+            <div class="d-flex gap-2 text-muted mt-1" style="font-size: 0.75rem;">
+              <span>Dist: ${rec.score_breakdown.distance_score}</span> &bull;
+              <span>Avail: ${rec.score_breakdown.availability_score}</span> &bull;
+              <span>Power: ${rec.score_breakdown.power_score}</span> &bull;
+              <span>Tariff: ${rec.score_breakdown.price_score}</span>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-secondary">
+            <div>
+              <span class="text-muted small">Max Power:</span>
+              <strong class="text-white">${rec.max_power_kw} kW</strong>
+              <span class="text-muted small ms-2">From:</span>
+              <strong class="text-success">$${rec.min_price_per_kwh.toFixed(2)} / kWh</strong>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="filterToStation('${rec.station_name}')">
+              <i class="bi bi-plug-fill me-1"></i> View Bays
+            </button>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    showToast(`AI ranking computed based on ${soc}% battery state!`, "success");
+  } catch (err) {
+    showToast(err.message, "error");
+    grid.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to compute AI recommendations: ${err.message}</div>`;
+  }
+}
+
+function filterToStation(stationName) {
+  document.getElementById("filter-search").value = stationName;
+  loadStations();
+}
+
+// ==========================================
+// AI FEATURE 4: HYBRID RAG CHAT ASSISTANT
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+  const chatForm = document.getElementById("chat-form");
+  if (chatForm) {
+    chatForm.addEventListener("submit", handleChatSubmit);
+  }
+
+  document.querySelectorAll(".chat-suggestion").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const prompt = btn.dataset.prompt;
+      document.getElementById("chat-input-text").value = prompt;
+      handleChatSubmit(new Event("submit"));
+    });
+  });
+});
+
+async function handleChatSubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById("chat-input-text");
+  const message = input.value.trim();
+  if (!message) return;
+
+  const container = document.getElementById("chat-messages-container");
+
+  // 1. Append User Message Bubble
+  const userBubble = document.createElement("div");
+  userBubble.className = "chat-bubble-user";
+  userBubble.textContent = message;
+  container.appendChild(userBubble);
+  input.value = "";
+  container.scrollTop = container.scrollHeight;
+
+  // 2. Append Loading Placeholder
+  const loadingBubble = document.createElement("div");
+  loadingBubble.className = "chat-bubble-ai text-info";
+  loadingBubble.id = "chat-loading-placeholder";
+  loadingBubble.innerHTML = '<div class="spinner-grow spinner-grow-sm me-2"></div> Querying ChromaDB Vector Store & Live Database...';
+  container.appendChild(loadingBubble);
+  container.scrollTop = container.scrollHeight;
+
+  try {
+    const response = await apiRequest("/assistant/chat", {
+      method: "POST",
+      body: JSON.stringify({ message })
+    });
+
+    // Remove loading placeholder
+    const loader = document.getElementById("chat-loading-placeholder");
+    if (loader) loader.remove();
+
+    // 3. Append Grounded AI Response
+    const aiBubble = document.createElement("div");
+    aiBubble.className = "chat-bubble-ai";
+
+    let sourcesHtml = "";
+    if (response.sources && response.sources.length > 0) {
+      sourcesHtml = `
+        <div class="mt-2 pt-2 border-top border-secondary">
+          <small class="text-muted d-block mb-1"><i class="bi bi-shield-check text-success me-1"></i> Grounded Information Sources:</small>
+          <div class="d-flex flex-wrap gap-1">
+            ${response.sources.map(s => `
+              <span class="chat-source-tag" title="${s.snippet.replace(/"/g, '&quot;')}">
+                <i class="bi bi-${s.source_type === 'LIVE_DATABASE' ? 'database-fill text-info' : 'book-fill text-warning'} me-1"></i>
+                ${s.title}
+              </span>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    // Convert markdown bolding and bullet newlines to HTML
+    const formattedAnswer = response.answer
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+
+    aiBubble.innerHTML = `
+      <div>${formattedAnswer}</div>
+      ${sourcesHtml}
+    `;
+
+    container.appendChild(aiBubble);
+    container.scrollTop = container.scrollHeight;
+  } catch (err) {
+    const loader = document.getElementById("chat-loading-placeholder");
+    if (loader) loader.remove();
+
+    const errBubble = document.createElement("div");
+    errBubble.className = "chat-bubble-ai text-danger";
+    errBubble.innerHTML = `<i class="bi bi-exclamation-octagon me-1"></i> Error: ${err.message}`;
+    container.appendChild(errBubble);
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+
 

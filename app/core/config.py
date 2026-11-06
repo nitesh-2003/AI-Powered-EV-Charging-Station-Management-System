@@ -1,7 +1,13 @@
-from typing import List, Union
+import sys
+import logging
+from typing import List, Optional, Union
 import json
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_SECRET = "insecure-dev-secret-key-change-this-for-production"
 
 
 class Settings(BaseSettings):
@@ -15,7 +21,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Security & Authentication
-    SECRET_KEY: str = "insecure-dev-secret-key-change-this-for-production"
+    SECRET_KEY: str = _DEFAULT_SECRET
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
@@ -34,6 +40,9 @@ class Settings(BaseSettings):
         "http://localhost:8000",
     ]
 
+    # Generative AI (Optional)
+    GEMINI_API_KEY: Optional[str] = None
+
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
@@ -43,6 +52,21 @@ class Settings(BaseSettings):
                 return json.loads(v)
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
+
+    @model_validator(mode="after")
+    def _validate_production_security(self) -> "Settings":
+        """
+        Production safety gate: prevents the application from starting in
+        non-DEBUG mode with the default insecure secret key.
+        """
+        if not self.DEBUG and self.SECRET_KEY == _DEFAULT_SECRET:
+            logger.critical(
+                "FATAL: SECRET_KEY must be changed from the default value "
+                "before running in production (DEBUG=False). Generate a "
+                "secure key with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+            )
+            sys.exit(1)
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

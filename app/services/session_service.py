@@ -30,10 +30,11 @@ class SessionService:
         Validates hardware state, locks dispenser to 'OCCUPIED',
         and records initial energy meter reading.
         """
-        # 1. Verify dispenser hardware state
+        # 1. Verify dispenser hardware state with exclusive row lock
         point = (
             db.query(ChargingPoint)
             .filter(ChargingPoint.id == session_in.charging_point_id)
+            .with_for_update()
             .first()
         )
         if not point:
@@ -217,10 +218,12 @@ class SessionService:
     def get_all(
         db: Session,
         status: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100,
     ) -> List[ChargingSession]:
-        """Admin query: fetch all network charging sessions."""
+        """Admin query: fetch all network charging sessions with pagination."""
         query = db.query(ChargingSession)
         if status:
             query = query.filter(ChargingSession.status == status.upper().strip())
-        return query.order_by(ChargingSession.start_time.desc()).all()
+        return query.order_by(ChargingSession.start_time.desc()).offset(skip).limit(limit).all()
 
