@@ -86,3 +86,4 @@ function showToast(message, type = "success") {
     setTimeout(() => alertDiv.remove(), 200);
   }, 4000);
 }
+

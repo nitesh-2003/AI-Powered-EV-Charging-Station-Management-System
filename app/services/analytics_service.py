@@ -165,3 +165,4 @@ class AnalyticsService:
             station_breakdown=station_breakdown,
             revenue_trend=revenue_trend,
         )
+

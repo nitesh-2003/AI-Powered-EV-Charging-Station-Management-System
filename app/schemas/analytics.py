@@ -27,3 +27,4 @@ class DashboardMetrics(BaseModel):
     total_revenue: Decimal
     station_breakdown: List[StationAnalytics]
     revenue_trend: List[Dict[str, Any]]
+

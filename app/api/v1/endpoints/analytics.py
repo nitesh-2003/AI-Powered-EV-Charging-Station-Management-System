@@ -21,3 +21,4 @@ def get_dashboard_metrics(
 ):
     """Returns database-backed metrics for the admin command center and Chart.js visualizations."""
     return AnalyticsService.get_dashboard_metrics(db)
+

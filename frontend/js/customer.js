@@ -456,3 +456,4 @@ async function cancelBooking(bookingId) {
     showToast(err.message, "error");
   }
 }
+
