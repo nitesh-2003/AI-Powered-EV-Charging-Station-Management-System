@@ -1,600 +1,621 @@
-# ⚡ AI-Powered EV Charging Station Management System (VoltFlow)
+# VoltFlow --- AI-Powered EV Charging Station Management System
 
-[![Python 3.13](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com)
-[![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://www.sqlalchemy.org/)
-[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-336791.svg?logo=postgresql)](https://www.postgresql.org/)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4.2-F7931E.svg?logo=scikitlearn)](https://scikit-learn.org/)
-[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_Store-orange.svg)](https://www.trychroma.com/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-17%20Passed-brightgreen.svg)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+VoltFlow is a full-stack electric vehicle (EV) charging management
+platform built with **FastAPI, PostgreSQL, and machine learning**. It
+helps drivers discover charging stations, reserve charging slots,
+monitor charging sessions, and receive intelligent station
+recommendations. It also gives administrators tools to manage charging
+plazas, monitor network operations, forecast demand, and inspect
+charging-equipment telemetry.
 
-An enterprise-grade, production-ready EV charging plaza management platform featuring real-time dispenser hardware control, concurrency-safe reservations, automated metered billing, operational business analytics, a 3-pillar Machine Learning intelligence suite, and a RAG (Retrieval-Augmented Generation) AI assistant.
+The platform combines a REST API, a responsive web interface,
+conventional machine learning models, and a retrieval-augmented
+generation (RAG) assistant.
 
----
+------------------------------------------------------------------------
 
-## 📑 Table of Contents
+## Table of Contents
 
-- [System Architecture](#-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Core Features](#-core-features)
-- [Database Schema & ERD](#-database-schema--erd)
-- [API Reference](#-api-reference)
-- [Machine Learning Suite](#-machine-learning-suite)
-- [RAG AI Assistant](#-rag-ai-assistant)
-- [Frontend Dashboards](#-frontend-dashboards)
-- [Installation & Quickstart](#-installation--quickstart)
-- [Docker Deployment](#-docker-deployment)
-- [Testing & Quality Assurance](#-testing--quality-assurance)
-- [Directory Structure](#-directory-structure)
-- [Security Hardening](#-security-hardening)
-- [Roadmap](#-roadmap)
-- [License](#-license)
+-   [Key Features](#key-features)
+-   [Screenshots](#screenshots)
+-   [Technology Stack](#technology-stack)
+-   [System Architecture](#system-architecture)
+-   [How It Works](#how-it-works)
+-   [Database Design](#database-design)
+-   [API Overview](#api-overview)
+-   [Project Structure](#project-structure)
+-   [Getting Started](#getting-started)
+-   [Demo Accounts](#demo-accounts)
+-   [Running Tests](#running-tests)
+-   [Machine Learning Evaluation](#machine-learning-evaluation)
+-   [Security and Engineering](#security-and-engineering)
+-   [Current Limitations](#current-limitations)
+-   [Future Improvements](#future-improvements)
 
----
+------------------------------------------------------------------------
 
-## 🏛 System Architecture
+## Key Features
 
-VoltFlow couples a high-throughput asynchronous REST backend with decoupled ML estimators and an embedded vector retrieval engine:
+### Driver / Customer Portal
 
-```mermaid
-graph TB
-    subgraph Clients["Presentation Layer"]
-        CP["Customer Web Portal<br/>(Discovery, Booking, Live Charge, AI Assistant)"]
-        AD["Admin Operations Console<br/>(Plazas, Telemetry Sentinel, Demand AI, Analytics)"]
-    end
+-   Browse charging plazas and their charging points.
+-   View connector types, charger power, availability, and tariffs.
+-   Register and sign in using JWT-based authentication.
+-   Reserve charging time slots.
+-   Start and stop charging sessions.
+-   View metered energy consumption and simulated billing receipts.
+-   Get station recommendations based on distance, availability,
+    charging speed, price, and battery State of Charge (SOC).
+-   Ask the AI assistant questions about charging policies, technical
+    guidance, and supported live account information.
 
-    subgraph Gateway["FastAPI Application (Port 8000)"]
-        AUTH["Auth & RBAC Middleware<br/>(JWT HS256 + Bcrypt)"]
-        CORS["CORS & Static Files Host"]
-        API_ROUTER["API v1 Gateway Router"]
-    end
+### Administrator Command Center
 
-    subgraph Services["Core Business Services"]
-        ST_SVC["Station & Dispenser Service"]
-        BK_SVC["Booking & Slot Protection Service"]
-        SS_SVC["Session Telemetry & Billing Service"]
-        AN_SVC["Analytics Aggregation Engine"]
-    end
+-   View network KPIs, station counts, dispenser status, energy
+    consumption, and revenue.
+-   Register and manage charging station plazas and dispensers.
+-   Select plaza coordinates using an interactive map or paste Google
+    Maps coordinates/links.
+-   View seven-day revenue and energy trends.
+-   Generate 24-hour charging-demand forecasts.
+-   Scan fleet telemetry for potential electrical anomalies.
+-   Manage operational data through role-protected endpoints.
 
-    subgraph AI_Engines["AI & Machine Learning Layer"]
-        DEMAND["Demand Forecaster<br/>(Random Forest Regressor)"]
-        RECOMMEND["Station Recommender<br/>(Multi-Criteria Geodesic Scoring)"]
-        ANOMALY["Sentinel Telemetry Detector<br/>(Isolation Forest + Physics Heuristics)"]
-        RAG["RAG Assistant Pipeline<br/>(Intent Router + ChromaDB + Live Grounding)"]
-    end
+### AI and Machine Learning
 
-    subgraph Persistence["Storage & Vectors"]
-        PG[("PostgreSQL 16 Engine<br/>(UUIDs, Cascade Deletes, Row Locks)")]
-        CHROMA[("ChromaDB Vector Store<br/>(Cosine Embeddings / Knowledge Base)")]
-        MODELS[("Trained Model Artifacts<br/>(*.joblib)")]
-    end
+-   **Demand forecasting:** Random Forest model predicts hourly
+    charging-session volume and energy demand for the next 24 hours.
+-   **Station recommendation:** Multi-factor scoring ranks stations
+    using Haversine distance, bay availability, charging power, and
+    tariff. Weights adapt when battery SOC falls below 20%.
+-   **Anomaly detection:** Isolation Forest is combined with engineering
+    checks to identify suspicious voltage, current, temperature, and
+    meter readings.
+-   **Grounded AI assistant:** ChromaDB retrieves relevant policy
+    documents, while PostgreSQL supplies live station/session
+    information when required. The assistant routes requests to policy
+    retrieval, live database retrieval, or both.
 
-    CP --> CORS
-    AD --> CORS
-    CORS --> AUTH
-    AUTH --> API_ROUTER
+### Reliability and Engineering
 
-    API_ROUTER --> ST_SVC
-    API_ROUTER --> BK_SVC
-    API_ROUTER --> SS_SVC
-    API_ROUTER --> AN_SVC
-    API_ROUTER --> DEMAND
-    API_ROUTER --> RECOMMEND
-    API_ROUTER --> ANOMALY
-    API_ROUTER --> RAG
+-   JWT authentication and role-based access control (CUSTOMER / ADMIN).
+-   Booking-overlap validation to reject conflicting reservations.
+-   Database row locking when a charging session starts.
+-   SQLAlchemy ORM and Alembic database migrations.
+-   PostgreSQL as the primary database, with an automatic SQLite
+    development fallback.
+-   Automated tests with Pytest and HTTPX.
+-   Docker and Docker Compose support.
+-   GitHub Actions CI workflow.
 
-    ST_SVC --> PG
-    BK_SVC --> PG
-    SS_SVC --> PG
-    AN_SVC --> PG
-    DEMAND --> MODELS
-    ANOMALY --> MODELS
-    RAG --> CHROMA
-    RAG --> PG
+------------------------------------------------------------------------
+
+## Screenshots
+
+The screenshots below are stored in `docs/screenshots/`. The image links
+are relative to the repository root, so they will render on GitHub when
+the folder and filenames are committed with the README.
+
+### Admin Dashboard
+
+  ----------------------------------------------------------------------------------------------------
+  Admin Dashboard --- Overview                      Admin Dashboard --- Analytics
+  ------------------------------------------------- --------------------------------------------------
+  ![Admin dashboard                                 ![Admin dashboard
+  overview](docs/screenshots/admin_dasboard1.png)   analytics](docs/screenshots/admin_dasboard2.png)
+
+  ----------------------------------------------------------------------------------------------------
+
+### Customer Portal and Charging
+
+  -----------------------------------------------------------------------------------------------------
+  User Dashboard                                    Charging Sessions
+  ------------------------------------------------- ---------------------------------------------------
+  ![User                                            ![Charging
+  dashboard](docs/screenshots/user_dashboard.png)   sessions](docs/screenshots/charging_sessions.png)
+
+  -----------------------------------------------------------------------------------------------------
+
+### Station Management and Reservations
+
+  ----------------------------------------------------------------------------------------------------------
+  Register Station Plaza                                Reservations
+  ----------------------------------------------------- ----------------------------------------------------
+  ![Register station                                    ![Reservations](docs/screenshots/reservations.png)
+  plaza](docs/screenshots/register_station_plaza.png)   
+
+  ----------------------------------------------------------------------------------------------------------
+
+### AI Features
+
+  -----------------------------------------------------------------------------------------------------------
+  AI Assistant                                    AI Station Recommender
+  ----------------------------------------------- -----------------------------------------------------------
+  ![AI                                            ![AI station
+  assistant](docs/screenshots/ai_assistant.png)   recommender](docs/screenshots/ai_station_recommender.png)
+
+  -----------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## Technology Stack
+
+  -----------------------------------------------------------------------
+  Layer                   Technologies            Purpose
+  ----------------------- ----------------------- -----------------------
+  Language                Python 3.13             Backend, data
+                                                  processing, and ML
+
+  API                     FastAPI, Uvicorn,       REST endpoints,
+                          Pydantic v2             validation, and API
+                                                  documentation
+
+  ORM / Migrations        SQLAlchemy 2.0, Alembic Database access and
+                                                  schema versioning
+
+  Primary database        PostgreSQL 16           Persistent relational
+                                                  data
+
+  Development / test      SQLite                  Local fallback and
+  database                                        isolated test database
+
+  Authentication          Bcrypt, Python-Jose,    Password hashing and
+                          JWT                     token-based access
+
+  Machine learning        Scikit-learn, Pandas,   Demand prediction and
+                          NumPy, Joblib           anomaly detection
+
+  RAG / Vector search     ChromaDB,               Policy-document
+                          Sentence-Transformers   retrieval
+
+  Frontend                HTML, CSS, JavaScript,  Customer and
+                          Bootstrap 5.3           administrator
+                                                  interfaces
+
+  Charts and maps         Chart.js, Leaflet.js    Analytics
+                                                  visualizations and
+                                                  map-based plaza
+                                                  selection
+
+  Testing                 Pytest, HTTPX           Automated API and
+                                                  feature tests
+
+  Deployment / CI         Docker, Docker Compose, Containerization and
+                          GitHub Actions          automated checks
+  -----------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## System Architecture
+
+VoltFlow is organized into presentation, API, service, AI, and
+persistence layers.
+
+``` mermaid
+flowchart TB
+    U["Customer Portal"] --> API["FastAPI Application"]
+    A["Admin Command Center"] --> API
+
+    API --> AUTH["JWT Authentication & RBAC"]
+    AUTH --> SVC["Service Layer"]
+    AUTH --> AI["AI / ML Layer"]
+
+    SVC --> DB[("PostgreSQL 16<br/>SQLite development fallback")]
+    AI --> DB
+    AI --> ML["Serialized ML Models"]
+    AI --> VDB[("ChromaDB Vector Store")]
+
+    SVC --> B["Bookings, Sessions, Billing"]
+    SVC --> OPS["Stations, Dispensers, Analytics"]
+    AI --> P["Demand Forecasting"]
+    AI --> R["Station Recommendation"]
+    AI --> D["Telemetry Anomaly Detection"]
+    AI --> CHAT["Grounded RAG Assistant"]
 ```
 
----
+### Request flow example: starting a charging session
 
-## 🛠 Tech Stack
+1.  The driver selects an available charging point in the customer
+    portal.
+2.  The frontend sends `POST /api/v1/sessions/start` with the
+    charging-point ID and initial meter reading.
+3.  FastAPI validates the JWT and loads the authenticated user.
+4.  The session service locks the charging-point row using
+    `SELECT ... FOR UPDATE`.
+5.  If the point is available, its status is updated and a charging
+    session is created in the same database transaction.
+6.  The API returns the created session, and the frontend displays the
+    charging-session interface.
 
-| Domain | Technology | Version | Purpose |
-|---|---|---|---|
-| **API Framework** | FastAPI | `0.111.0` | Asynchronous high-performance REST API |
-| **Server Engine** | Uvicorn | `0.29.0` | Production ASGI web server |
-| **Data Validation** | Pydantic v2 & Settings | `2.7.1` / `2.2.1` | Strict schema validation & 12-factor configuration |
-| **ORM & Relational DB** | SQLAlchemy | `2.0.30` | Declarative mapping, connection pooling, migrations |
-| **Database** | PostgreSQL | `16-alpine` | ACID-compliant relational data store |
-| **Database Driver** | Psycopg2-binary | `2.9.9` | Optimized C-extension PostgreSQL adapter |
-| **Migrations** | Alembic | `1.13.1` | Programmatic schema migrations |
-| **Auth & Cryptography** | Python-Jose & Bcrypt | `3.3.0` / `4.1.2` | Signed JWT bearer tokens, salt-hashed passwords |
-| **Machine Learning** | Scikit-Learn | `1.4.2` | Random Forest Regressor & Isolation Forest |
-| **Data Manipulation** | Pandas & NumPy | `2.2.2` / `1.26.4` | Telemetry processing, feature engineering |
-| **Model Serialization** | Joblib | `1.4.2` | High-efficiency pipeline serialization |
-| **Vector Store** | ChromaDB | `0.5.x` | Dense semantic retrieval & policy indexing |
-| **Frontend UI** | HTML5 / CSS3 / Vanilla JS | ES6+ | Glassmorphism UI, zero-build lightweight frontend |
-| **Test Harness** | Pytest & HTTPX | `8.2.0` / `0.27.0` | Asynchronous integration & unit testing suite |
-| **Containerization** | Docker & Compose | Multi-stage | Reproducible containerized deployment |
+------------------------------------------------------------------------
 
----
+## How It Works
 
-## ✨ Core Features
+### 1. Authentication and access control
 
-### 🔐 1. Authentication & Role-Based Access Control (RBAC)
-- **Granular Permissions**: Strict role distinction between `CUSTOMER` (driver) and `ADMIN` (network operator).
-- **Hardened Cryptography**: Direct Bcrypt hashing with standard salt rounds, eliminating passlib-72 byte truncation bugs.
-- **Production Guard**: Public administrative registration is blocked automatically whenever `DEBUG=False`.
-- **JWT Bearer Token Flow**: Dual authentication endpoints support both standard JSON credential exchange and OAuth2-compliant form submissions for native Swagger UI testing.
+Users register and sign in through the authentication API. Passwords are
+hashed with Bcrypt, and successful login returns a signed JWT. Protected
+endpoints validate the token. Administrative operations require the
+`ADMIN` role; normal driver operations use the `CUSTOMER` role.
 
-### ⚡ 2. Stations & Dispenser Infrastructure
-- **Hierarchical Plazas**: Multi-point charging stations with GPS coordinates, operational state (`ACTIVE`, `UNDER_MAINTENANCE`, `INACTIVE`), and automated cascade deletion.
-- **Hardware Attributes**: Detailed dispenser specs including connector standards (`CCS2`, `TYPE2`, `CHADEMO`), rated power in kW (22kW to 350kW), live occupancy, and dynamic tariffs.
-- **Parametric Filtering**: Instant discovery filtering by connector type and minimum power thresholds.
+### 2. Station and dispenser management
 
-### 📅 3. High-Concurrency Slot Reservations
-- **Mathematical Overlap Detection**: Uses temporal collision logic:
-  $$\text{Overlap} \iff (\text{Start}_A < \text{End}_B) \land (\text{End}_A > \text{Start}_B)$$
-- **Strict 409 Conflict Rejection**: Blocks double-booking on identical dispensers.
-- **Grace Periods & Auto-Lifecycle**: Reserves dispensers for scheduled windows with status transitions from `CONFIRMED` to `COMPLETED` or `CANCELLED`.
+An administrator creates a charging plaza with its name, address, GPS
+coordinates, and charging points. Each point records its connector type
+(`CCS2`, `TYPE2`, or `CHADEMO`), power rating, status, and price per
+kWh. The admin map picker supports selecting a location on a Leaflet map
+or parsing coordinates from a Google Maps link.
 
-### 🔋 4. Metered Charging Sessions & Automated Billing
-- **Hardware State Locking**: `SELECT ... FOR UPDATE` row locks prevent simultaneous session initiation on active dispensers.
-- **Dynamic Metering**: Calculates actual energy delivered ($\text{Final kWh} - \text{Initial kWh}$).
-- **Automated Billing Engine**: Billed cost is calculated as:
-  $$\text{Total Cost} = \text{Energy Delivered (kWh)} \times \text{Tariff Rate (\$/kWh)}$$
-- **Simulated Payment Invoicing**: Auto-generates cryptographically unique transaction references (`SIM-PAY-XXXXXXXXXXXX`) upon session closure.
+### 3. Reservations and double-booking prevention
 
-### 📊 5. Operational Analytics Engine
-- **N+1 Query Elimination**: Pre-aggregated single-query SQL `GROUP BY` aggregations compute network-wide utilization, occupied vs. available bay ratios, 7-day revenue velocity, and station-by-station revenue distribution.
+A reservation is associated with a specific charging point and time
+interval. Before creating it, the service checks whether another
+confirmed reservation overlaps the requested interval:
 
----
-
-## 🗄 Database Schema & ERD
-
-```mermaid
-erDiagram
-    users ||--o{ bookings : "creates"
-    users ||--o{ charging_sessions : "charges"
-    users ||--o{ payments : "pays"
-    charging_stations ||--|{ charging_points : "contains (CASCADE)"
-    charging_points ||--o{ bookings : "reserved_in"
-    charging_points ||--o{ charging_sessions : "dispenses"
-    bookings ||--o| charging_sessions : "initiates"
-    charging_sessions ||--|| payments : "bills (1:1)"
-
-    users {
-        uuid id PK
-        string email UK
-        string hashed_password
-        string full_name
-        string role "CUSTOMER | ADMIN"
-        boolean is_active
-        datetime created_at
-        datetime updated_at
-    }
-
-    charging_stations {
-        uuid id PK
-        string name
-        string address
-        float latitude
-        float longitude
-        string status "ACTIVE | INACTIVE | UNDER_MAINTENANCE"
-        datetime created_at
-        datetime updated_at
-    }
-
-    charging_points {
-        uuid id PK
-        uuid station_id FK
-        string identifier
-        string connector_type "CCS2 | TYPE2 | CHADEMO"
-        float power_kw
-        string status "AVAILABLE | OCCUPIED | RESERVED | FAULTED"
-        decimal price_per_kwh
-        datetime created_at
-        datetime updated_at
-    }
-
-    bookings {
-        uuid id PK
-        uuid user_id FK
-        uuid charging_point_id FK
-        datetime start_time
-        datetime end_time
-        string status "CONFIRMED | CANCELLED | COMPLETED"
-        datetime created_at
-        datetime updated_at
-    }
-
-    charging_sessions {
-        uuid id PK
-        uuid booking_id FK
-        uuid user_id FK
-        uuid charging_point_id FK
-        datetime start_time
-        datetime end_time
-        decimal initial_meter_kwh
-        decimal final_meter_kwh
-        decimal total_energy_kwh
-        decimal total_cost
-        string status "IN_PROGRESS | COMPLETED | STOPPED"
-        datetime created_at
-        datetime updated_at
-    }
-
-    payments {
-        uuid id PK
-        uuid session_id FK
-        uuid user_id FK
-        decimal amount
-        string status "PENDING | COMPLETED | FAILED"
-        string transaction_ref UK
-        datetime created_at
-        datetime updated_at
-    }
+``` text
+Existing start < Requested end
+AND
+Existing end > Requested start
 ```
 
----
+If an overlap exists, the API rejects the reservation with **HTTP 409
+Conflict**.
 
-## 📡 API Reference
+### 4. Charging sessions and billing
 
-All routes are mounted under `/api/v1` and documented natively in Swagger UI (`/docs`).
+When a driver starts charging, the backend locks the selected
+charging-point row to prevent two concurrent sessions from occupying the
+same dispenser. Energy delivered is calculated from meter readings:
 
-### 1. Health & Meta
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/health` | Service uptime and version health check | Public |
-
-### 2. Authentication & Profile
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/auth/register` | Register new Customer or Admin account | Public |
-| `POST` | `/auth/login` | Authenticate with JSON body & get JWT | Public |
-| `POST` | `/auth/login/access-token` | OAuth2 password form login (Swagger UI) | Public |
-| `GET` | `/auth/me` | Fetch active user credentials and profile | User Token |
-| `GET` | `/auth/admin-test` | RBAC verification gate | Admin Only |
-
-### 3. Charging Stations
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/stations` | List all stations with points | Public |
-| `POST` | `/stations` | Provision a new charging plaza | Admin Only |
-| `GET` | `/stations/{id}` | Detailed station information with dispensers | Public |
-| `PUT` | `/stations/{id}` | Update plaza configuration or operational state | Admin Only |
-| `DELETE` | `/stations/{id}` | Cascade delete plaza and attached points | Admin Only |
-| `GET` | `/stations/{id}/points` | Filter dispensers by connector and power | Public |
-| `POST` | `/stations/{id}/points` | Add new EVSE dispenser to plaza | Admin Only |
-
-### 4. Charging Points (EVSE Dispensers)
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/points/{id}` | Retrieve individual dispenser telemetry | Public |
-| `PUT` | `/points/{id}` | Update dispenser status (`AVAILABLE`/`FAULTED`) | Admin Only |
-| `DELETE` | `/points/{id}` | Remove individual dispenser | Admin Only |
-
-### 5. Bookings & Reservations
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/bookings` | Create reservation with overlap protection | User Token |
-| `GET` | `/bookings` | List user bookings (or all if Admin, paginated) | User Token |
-| `GET` | `/bookings/{id}` | Fetch booking details | User Token |
-| `POST` | `/bookings/{id}/cancel` | Cancel scheduled reservation | User Token |
-
-### 6. Charging Sessions & Billing
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/sessions/start` | Start session, lock dispenser to `OCCUPIED` | User Token |
-| `GET` | `/sessions` | Session history with pagination | User Token |
-| `GET` | `/sessions/{id}` | Get session telemetry & payment invoice | User Token |
-| `POST` | `/sessions/{id}/stop` | Terminate session, calculate kWh & bill | User Token |
-
-### 7. Operational Analytics
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `GET` | `/analytics/dashboard` | Aggregated network KPIs, trend, & plazas | Admin Only |
-
-### 8. Machine Learning Intelligence
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/ai/predict-demand` | 24-hour demand & energy consumption forecast | User Token |
-| `POST` | `/ai/recommend-stations` | Multi-criteria geodesic ranking with SOC adaptation | User Token |
-| `POST` | `/ai/detect-anomalies` | Single telemetry reading fault diagnosis | User Token |
-| `POST` | `/ai/inspect-fleet-telemetry` | Batch telemetry audit for fleet sentinel | Admin Only |
-| `GET` | `/ai/models-status` | Model serialization artifact health status | Public |
-
-### 9. Generative AI & RAG Assistant
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/assistant/chat` | Grounded multi-source RAG conversation | User Token |
-| `GET` | `/assistant/knowledge-base-stats`| ChromaDB collection chunk count & metadata | Public |
-
----
-
-## 🤖 Machine Learning Suite
-
-VoltFlow integrates three production-trained ML models designed for grid stabilization, driver dispatch, and hardware failure prevention:
-
-### Feature 1: Grid Demand Prediction
-- **Algorithm**: Multi-Output Random Forest Regressor (`n_estimators=100`, `max_depth=12`).
-- **Feature Engineering**: Cyclical temporal features:
-  $$\sin\left(\frac{2\pi \cdot \text{hour}}{24}\right), \quad \cos\left(\frac{2\pi \cdot \text{hour}}{24}\right), \quad \sin\left(\frac{2\pi \cdot \text{dow}}{7}\right), \quad \cos\left(\frac{2\pi \cdot \text{dow}}{7}\right)$$
-- **Leakage Prevention**: Chronological 80/20 train/test split preserving temporal causality.
-- **Dataset**: 11,520 real-world hourly observations across 4 charging hubs over 120 days.
-- **Verified Metrics**:
-  - **Sessions MAE**: **1.451 sessions** (53% error reduction over baseline, $R^2 = 0.708$)
-  - **Energy Consumption MAE**: **51.03 kWh** ($R^2 = 0.671$)
-
-### Feature 2: Smart Station Recommendation
-- **Algorithm**: Multi-Criteria Weighted Decision Matrix with Geodesic Haversine Distance:
-  $$d = 2r \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos\phi_1\cos\phi_2\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)$$
-- **Scoring Function**:
-  $$\text{Score} = w_{\text{dist}} \cdot S_{\text{dist}} + w_{\text{avail}} \cdot S_{\text{avail}} + w_{\text{power}} \cdot S_{\text{power}} + w_{\text{tariff}} \cdot S_{\text{tariff}}$$
-- **Dynamic SOC Urgency Adaptation**:
-  - When driver battery SOC drops below **20%**, the system automatically re-weights to prioritize distance (weight jumps from 0.35 to 0.65) and availability (weight jumps from 0.25 to 0.30) for emergency rerouting.
-
-### Feature 3: Hardware Anomaly Sentinel
-- **Algorithm**: Hybrid Isolation Forest (`contamination=0.06`) paired with deterministic electrical engineering heuristic validation.
-- **Verified Metrics**:
-  - **Precision**: **0.897** | **Recall**: **0.897** | **F1-Score**: **0.897**
-- **Monitored Hardware Signatures**:
-  1. *Voltage Sag*: Grid voltage dropping below nominal tolerance ($V < 360\text{V}$).
-  2. *Dispenser Overcurrent*: Amperage exceeding hardware rated capacity ($I > 360\text{A}$).
-  3. *Cable Thermal Runaway*: Liquid-cooled cable junction exceeding critical threshold ($T > 75^\circ\text{C}$).
-  4. *Meter Telemetry Stall*: Power draw detected without energy meter incrementation.
-  5. *BMS Taper Violation*: High charging rate requested when vehicle battery SOC $> 85\%$.
-
----
-
-## 🧠 RAG AI Assistant
-
-The conversational intelligence engine incorporates a multi-tier hybrid architecture combining offline vector search with live database grounding:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as EV Driver
-    participant API as /api/v1/assistant/chat
-    participant Router as Intent Router
-    participant Chroma as ChromaDB Vector Store
-    participant LiveDB as PostgreSQL Live DB
-    participant Engine as Grounded Synthesis Engine
-
-    User->>API: "What's the cancellation fee and my recent session status?"
-    API->>Router: Classify user query intent
-    Note over Router: Matches both Policy & Personal keywords -> Intent: HYBRID
-    
-    par Parallel Retrieval
-        Router->>Chroma: Cosine search ("cancellation policy")
-        Chroma-->>Engine: 2 Top Markdown Chunks (Source: Policies)
-    and
-        Router->>LiveDB: Query user_id sessions & live plazas
-        LiveDB-->>Engine: Active Sessions & Last Completed Invoice
-    end
-
-    Engine->>Engine: Synthesize Grounded Context & Source Attribution
-    Engine-->>API: Grounded Response + Source Badges
-    API-->>User: Markdown response with policies & live billing breakdown
+``` text
+Delivered energy (kWh) = Final meter reading - Initial meter reading
+Total cost (₹) = Delivered energy (kWh) × Tariff (₹/kWh)
 ```
 
-- **Knowledge Base Corpus** (`docs/knowledge_base/`):
-  - `station_operating_policies.md`: Grace periods (15 min), idle fees ($0.50/min), cancellation rules.
-  - `pricing_and_tariffs.md`: Off-peak vs. peak TOU tariff structures, simulated card payments.
-  - `connector_and_technical_guide.md`: CCS2, Type 2, CHAdeMO, CC-CV charging curves.
-  - `troubleshooting_and_safety.md`: Emergency disconnects, cable lock release, wet weather protocol.
-- **Deterministic & LLM Fallback**: Runs out-of-the-box locally with deterministic grounded templates. Optionally activates Google Gemini LLM when `GEMINI_API_KEY` is provided in the environment.
+When the session stops, the system records the final meter reading,
+calculates the cost, and creates a simulated payment receipt.
 
----
+### 5. AI demand forecasting
 
-## 🖥 Frontend Dashboards
+A Random Forest Regressor uses time-related and station-related features
+to predict hourly session volume and energy demand for a 24-hour
+horizon. Cyclical hour and day-of-week values are represented with sine
+and cosine features so that adjacent times (for example, 23:00 and
+00:00) are represented appropriately.
 
-VoltFlow includes two zero-build, responsive web applications mounted directly by the FastAPI application:
+### 6. Intelligent station recommendations
 
-### 1. Customer Charging Portal (`/` or `index.html`)
-- **Interactive Plazas Map**: Real-time browsing of charging plazas, live bay availability, connector specifications, and tariff rates.
-- **AI Station Recommender**: Interactive battery SOC slider that dynamically adjusts recommendations based on vehicle charge level.
-- **Slot Reservation Modal**: Start and end time selection with automated overlap detection feedback.
-- **Live Session Simulator**: Real-time charging session start/stop, simulated meter telemetry, and instant invoice breakdown.
-- **Floating AI Assistant (FAB)**: Expandable drawer with interactive suggestion pills, markdown responses, and source citation badges.
+The recommendation engine calculates geographic distance using the
+Haversine formula and combines it with charger availability, power
+output, and tariff. When battery SOC is below 20%, it increases the
+importance of distance and availability and reduces the importance of
+price.
 
-### 2. Administrator Operations Console (`/admin.html`)
-- **KPI Overview Cards**: Total users, active plazas, available/occupied dispensers, and network revenue.
-- **Demand Prediction Visualizer**: 24-hour demand forecasting chart rendered dynamically with responsive HTML5 canvases.
-- **Anomaly Sentinel Fleet Scanner**: Real-time telemetry scanner that audits dispensers against trained Isolation Forest models and flags faults.
-- **Plaza Provisioning Suite**: Administrative modal to create new plazas, manage dispensers, and toggle maintenance status.
+### 7. Electrical telemetry anomaly detection
 
----
+The anomaly detector combines an Isolation Forest model with
+deterministic engineering checks. It screens readings for patterns such
+as voltage sag, overcurrent, high temperature, meter stalls, and
+battery-management-system charging-rate violations.
 
-## 🚀 Installation & Quickstart
+### 8. Grounded RAG assistant
+
+The assistant uses an intent router to select one of three retrieval
+paths: - `POLICY_RAG`: retrieve relevant operating-policy and
+technical-guide content from ChromaDB. - `LIVE_DATABASE`: retrieve
+applicable live station, booking, or session information from
+PostgreSQL. - `HYBRID`: combine policy retrieval and live database
+context.
+
+The knowledge base contains Markdown documents covering station
+operating policies, pricing and tariffs, connector guidance, and
+troubleshooting/safety.
+
+------------------------------------------------------------------------
+
+## Database Design
+
+The main relational entities are:
+
+  -----------------------------------------------------------------------
+  Table                               Purpose
+  ----------------------------------- -----------------------------------
+  `users`                             Customer and administrator accounts
+
+  `charging_stations`                 Charging plaza details and location
+
+  `charging_points`                   Individual dispensers, connector
+                                      types, power, status, and tariff
+
+  `bookings`                          Reserved charging-point time slots
+
+  `charging_sessions`                 Meter readings, delivered energy,
+                                      and session status
+
+  `payments`                          Payment amount, status, and
+                                      transaction reference
+  -----------------------------------------------------------------------
+
+UUID primary keys are used for records. Monetary and energy values use
+decimal database types to avoid binary floating-point rounding issues. A
+payment has a one-to-one relationship with its charging session.
+
+------------------------------------------------------------------------
+
+## API Overview
+
+All application endpoints are mounted under `/api/v1`. The complete
+interactive API reference is available at `/docs` when the application
+is running.
+
+  --------------------------------------------------------------------------------
+  Area                    Example endpoints                Purpose
+  ----------------------- -------------------------------- -----------------------
+  Authentication          `POST /auth/register`,           Account creation,
+                          `POST /auth/login`,              login, and current
+                          `GET /auth/me`                   profile
+
+  Stations                `GET /stations`,                 Discover and manage
+                          `POST /stations`,                plazas
+                          `PUT /stations/{id}`             
+
+  Charging points         `GET /points/{id}`,              Read and update
+                          `PUT /points/{id}`               dispenser details
+
+  Bookings                `POST /bookings`,                Reserve and cancel
+                          `GET /bookings/my`,              slots
+                          `POST /bookings/{id}/cancel`     
+
+  Sessions                `POST /sessions/start`,          Start, stop, and view
+                          `POST /sessions/{id}/stop`,      charging sessions
+                          `GET /sessions/my`               
+
+  Analytics               `GET /analytics/dashboard`       Administrator network
+                                                           metrics
+
+  AI / ML                 `POST /ai/predict-demand`,       Prediction,
+                          `POST /ai/recommend-stations`,   recommendations, and
+                          `POST /ai/detect-anomalies`      anomaly checks
+
+  Assistant               `POST /assistant/chat`           Grounded conversational
+                                                           assistance
+
+  Health                  `GET /health`                    Service health check
+  --------------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## Project Structure
+
+``` text
+AI-Powered-EV-Charging-Station-Management-System/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── app/
+│   ├── ai/
+│   │   ├── anomaly_detection/
+│   │   ├── assistant/
+│   │   ├── demand_prediction/
+│   │   └── recommendation/
+│   ├── api/
+│   │   ├── deps.py
+│   │   └── v1/
+│   │       └── endpoints/
+│   ├── core/
+│   ├── models/
+│   ├── schemas/
+│   ├── services/
+│   └── main.py
+├── docs/
+│   ├── knowledge_base/
+│   └── screenshots/
+├── frontend/
+│   ├── css/
+│   ├── js/
+│   ├── admin.html
+│   └── index.html
+├── migrations/
+├── ml_data/
+├── ml_models/
+├── scripts/
+├── tests/
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+└── README.md
+```
+
+------------------------------------------------------------------------
+
+## Getting Started
 
 ### Prerequisites
-- Python 3.13+
-- PostgreSQL 16+ (or Docker)
-- Git
 
-### 1. Clone & Set Up Virtual Environment
-```bash
-git clone https://github.com/your-username/AI-Powered-EV-Charging-Station-Management-System.git
+-   Windows 10/11
+-   Python 3.13.x
+-   Git for Windows
+-   PostgreSQL 16 (optional for local development because the
+    application has a SQLite development fallback)
+
+### 1. Clone the repository
+
+Replace `<your-username>` with your GitHub username:
+
+``` powershell
+git clone https://github.com/<your-username>/AI-Powered-EV-Charging-Station-Management-System.git
 cd AI-Powered-EV-Charging-Station-Management-System
+```
 
-# Create virtual environment
+### 2. Create and activate a virtual environment
+
+``` powershell
 python -m venv .venv
-
-# Activate virtual environment
-# Windows (PowerShell):
 .\.venv\Scripts\Activate.ps1
-# Linux / macOS:
-source .venv/bin/activate
+```
 
-# Install dependencies
+If PowerShell blocks activation because of the execution policy, you can
+activate the environment from Command Prompt instead:
+
+``` bat
+.venv\Scripts\activate.bat
+```
+
+### 3. Install dependencies
+
+``` powershell
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment Variables
-Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-Update `.env` with your PostgreSQL credentials:
-```ini
-DEBUG=True
-SECRET_KEY="your-super-secret-production-key-here"
-DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ev_charging_db"
+### 4. Configure environment variables
 
-# Optional: Enable external Gemini LLM for AI Assistant
-# GEMINI_API_KEY="AIzaSy..."
+``` powershell
+Copy-Item .env.example .env
 ```
 
-### 3. Initialize Database Migrations
-```bash
-alembic upgrade head
+Review `.env` and set appropriate values for your environment. In
+particular, configure a strong `SECRET_KEY`, database settings, CORS
+origins, and `GEMINI_API_KEY` if you intend to use the optional Gemini
+integration. Do not commit `.env` or real credentials to GitHub.
+
+If PostgreSQL is unavailable while development mode is enabled, VoltFlow
+is documented to fall back to the local SQLite database
+`ev_charging_dev.db` and seed demonstration data automatically.
+
+### 5. Run the application
+
+``` powershell
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 4. Train ML Models & Index Knowledge Base
-```bash
-# Generate synthetic datasets & train models
-python -m app.ai.demand_prediction.train
-python -m app.ai.anomaly_detection.train
+Open these URLs:
 
-# Index Markdown policies into ChromaDB
-python -c "from app.ai.assistant.indexer import KnowledgeBaseIndexer; KnowledgeBaseIndexer().reindex_all()"
+-   Customer Portal: http://localhost:8000/
+-   Admin Command Center: http://localhost:8000/admin.html
+-   Swagger API documentation: http://localhost:8000/docs
+-   Health check: http://localhost:8000/api/v1/health
+
+------------------------------------------------------------------------
+
+## Demo Accounts
+
+The development seed data documented for this project includes:
+
+  Role       Email                  Password
+  ---------- ---------------------- ----------------------
+  Customer   `driver@voltflow.io`   `DriverPassword123!`
+  Admin      `admin@voltflow.io`    `AdminPassword123!`
+
+These are development/demo credentials only. Change or disable them
+before deploying the application anywhere accessible to other users. Do
+not use these credentials in a production environment.
+
+------------------------------------------------------------------------
+
+## Running Tests
+
+The automated test suite uses Pytest and HTTPX. It is configured to use
+an isolated in-memory SQLite database, so the tests do not require a
+running PostgreSQL server.
+
+``` powershell
+pytest -v
 ```
 
-### 5. Launch Application
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-Access the application:
-- **Customer Portal**: [http://localhost:8000/](http://localhost:8000/)
-- **Admin Dashboard**: [http://localhost:8000/admin.html](http://localhost:8000/admin.html)
-- **Interactive OpenAPI Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+The project documentation records **17 passing tests** covering
+authentication, role checks, database operations, station and dispenser
+lifecycle, booking/session/billing flows, AI features, RAG retrieval,
+and health/analytics endpoints.
 
----
+------------------------------------------------------------------------
 
-## 🐳 Docker Deployment
+## Machine Learning Evaluation
 
-The system includes a production-ready, multi-stage `Dockerfile` and `docker-compose.yml` configuration:
+The following metrics are reported in the project development
+documentation. The datasets used for model development are synthetic,
+not live utility or charging-network telemetry.
 
-```bash
-# Build and start all services (PostgreSQL + FastAPI)
-docker-compose up --build -d
+  -----------------------------------------------------------------------
+  Component               Model / Method          Reported evaluation
+  ----------------------- ----------------------- -----------------------
+  Demand prediction       Random Forest Regressor Session forecast MAE:
+                                                  1.451 sessions; R²:
+                                                  0.708. Energy-demand
+                                                  MAE: 51.03 kWh; R²:
+                                                  0.671
 
-# View real-time container logs
-docker-compose logs -f api
+  Telemetry anomaly       Isolation Forest +      Precision: 0.897;
+  detection               engineering rules       Recall: 0.897;
+                                                  F1-score: 0.897
 
-# Shut down services and preserve volumes
-docker-compose down
-```
+  Station recommendation  Haversine distance +    Score combines
+                          weighted multi-factor   distance, availability,
+                          scoring                 charging power, and
+                                                  tariff; weights adapt
+                                                  to battery SOC
+  -----------------------------------------------------------------------
 
-The Docker stack automatically provisions:
-- `db`: PostgreSQL 16 Alpine container with persistent named volume `postgres_data` and native health checks.
-- `api`: Python 3.13 multi-stage image running as a non-root `appuser` with persistent volumes for `ml_models` and `ml_data`.
+These results describe evaluation on the project's generated datasets
+and should not be interpreted as guarantees of performance on live
+production data.
 
----
+------------------------------------------------------------------------
 
-## 🧪 Testing & Quality Assurance
+## Security and Engineering
 
-The test suite runs against an isolated, high-performance in-memory SQLite database utilizing custom dialect compilers for PostgreSQL UUID compatibility:
+-   Passwords are hashed using Bcrypt; raw passwords are not stored.
+-   JWT tokens are used for authenticated API requests.
+-   Role-based dependencies restrict administrator-only operations.
+-   Production configuration rejects the default placeholder secret key
+    when `DEBUG=False`.
+-   Booking overlap checks prevent conflicting reservations for the same
+    charging point.
+-   Row-level database locking protects charging-session initiation from
+    concurrent requests.
+-   SQL aggregation is used for dashboard metrics to reduce N+1 query
+    patterns.
+-   `.env` should contain local secrets and must not be committed.
 
-```bash
-# Run the complete test suite
-pytest tests/ -v
-```
+------------------------------------------------------------------------
 
-### Test Suite Execution Output
-```
-============================= test session starts =============================
-platform win32 -- Python 3.13.11, pytest-9.2.0, pluggy-1.7.0
-plugins: anyio-4.16.0, asyncio-1.4.1.post1
-collected 17 items
+## Current Limitations
 
-tests/test_ai_features.py::test_haversine_distance PASSED                [  5%]
-tests/test_ai_features.py::test_isolation_forest_anomaly_detection_signatures PASSED [ 11%]
-tests/test_ai_features.py::test_station_recommendation_multi_criteria_ranking PASSED [ 17%]
-tests/test_ai_features.py::test_demand_prediction_24h_cycle PASSED       [ 23%]
-tests/test_ai_features.py::test_ai_endpoints_dispatch PASSED             [ 29%]
-tests/test_auth.py::test_user_registration_and_authentication_flow PASSED [ 35%]
-tests/test_bookings_sessions.py::test_bookings_concurrency_overlap_and_sessions_billing_flow PASSED [ 41%]
-tests/test_database.py::test_database_connection PASSED                  [ 47%]
-tests/test_database.py::test_create_station_and_charging_point_relationship PASSED [ 52%]
-tests/test_health.py::test_root_endpoint PASSED                          [ 58%]
-tests/test_health.py::test_health_check_endpoint PASSED                  [ 64%]
-tests/test_health.py::test_analytics_dashboard_endpoint PASSED           [ 70%]
-tests/test_rag_assistant.py::test_knowledge_base_indexing_and_count PASSED [ 76%]
-tests/test_rag_assistant.py::test_vector_similarity_search_retrieval PASSED [ 82%]
-tests/test_rag_assistant.py::test_intent_router_classification PASSED    [ 88%]
-tests/test_rag_assistant.py::test_rag_engine_grounded_response_generation PASSED [ 94%]
-tests/test_stations.py::test_stations_and_charging_points_lifecycle PASSED [100%]
+-   **Charging hardware:** Charging energy delivery is simulated in the
+    frontend; the project does not currently communicate with physical
+    OCPP charge-point hardware.
+-   **Payments:** Payment receipts use simulated transaction references.
+    A live card/payment gateway is not integrated.
+-   **Machine-learning data:** Models are trained and evaluated on
+    synthetic datasets rather than real-world utility telemetry.
+-   **AI assistant:** Gemini integration is optional and depends on
+    configuring an API key; the project also includes deterministic and
+    retrieval-based components.
 
-============================= 17 passed in 3.99s ==============================
-```
+## Future Improvements
 
----
+-   Integrate an OCPP 2.0.1 gateway for communication with physical
+    charging stations.
+-   Add a production payment provider and webhook-based payment/refund
+    handling.
+-   Use live grid and wholesale electricity pricing for dynamic tariffs.
+-   Retrain and validate ML models using representative real-world
+    charging and telemetry data.
 
-## 📂 Directory Structure
+------------------------------------------------------------------------
 
-```
-AI-Powered-EV-Charging-Station-Management-System/
-├── app/
-│   ├── ai/
-│   │   ├── anomaly_detection/     # Isolation Forest & Telemetry Generator
-│   │   ├── assistant/             # ChromaDB RAG Engine, Router, & Live Retriever
-│   │   ├── demand_prediction/     # Random Forest 24h Grid Forecaster
-│   │   └── recommendation/        # Geodesic Multi-Criteria Scoring Engine
-│   ├── api/
-│   │   ├── deps.py                # JWT Auth & Role Verification Dependencies
-│   │   └── v1/
-│   │       ├── api.py             # Router Aggregation
-│   │       └── endpoints/         # Auth, Stations, Points, Bookings, Sessions, AI
-│   ├── core/
-│   │   ├── config.py              # Pydantic 12-Factor Settings & Validation Gates
-│   │   ├── database.py            # SQLAlchemy Engine & SessionLocal Factory
-│   │   └── security.py            # Bcrypt Password Hashing & JWT Minting
-│   ├── models/                    # Declarative ORM Models (UUIDs, Relationships)
-│   ├── schemas/                   # Pydantic Validation & Serialization DTOs
-│   ├── services/                  # Business Logic, Aggregations, & Concurrency Locks
-│   └── main.py                    # FastAPI App Initializer & Static Route Mounts
-├── docs/
-│   └── knowledge_base/            # Markdown Domain Documents for Vector Indexing
-├── frontend/
-│   ├── admin.html                 # Operator Dashboard & ML Sentinel UI
-│   ├── index.html                 # Customer Portal, Booking, & Floating AI Assistant
-│   ├── css/style.css              # Custom Glassmorphic Styling
-│   └── js/                        # Modular Frontend Controllers (api, customer, admin)
-├── migrations/                    # Alembic Database Migrations
-├── ml_data/                       # Generated Training Datasets & ChromaDB Store
-├── ml_models/                     # Serialized .joblib Model Artifacts
-├── tests/                         # Pytest Test Suite (17 Comprehensive Tests)
-│   └── conftest.py                # SQLite Test Fixtures & UUID Compilers
-├── Dockerfile                     # Multi-Stage Production Container Build
-├── docker-compose.yml             # Full-Stack Service Orchestration
-├── requirements.txt               # Pinned Python Dependencies
-└── pyproject.toml                 # Pytest & Tooling Configuration
-```
+## Documentation
 
----
+For the detailed development history, implementation walkthrough,
+database design, endpoint catalogue, model evaluation, security
+decisions, and interview preparation notes, see:
 
-## 🔒 Security Hardening
+[`PROJECT_DEVELOPMENT_AND_TECHNICAL_DOCUMENTATION.md`](PROJECT_DEVELOPMENT_AND_TECHNICAL_DOCUMENTATION.md)
 
-1. **Production Secret Gate**: The application will abort startup if executed with `DEBUG=False` while retaining the default `SECRET_KEY`.
-2. **Strict RBAC Enforcement**: Role-based access control prevents regular `CUSTOMER` accounts from modifying infrastructure, inspecting other users' sessions, or accessing admin dashboards.
-3. **Database Concurrency Protection**: Session initiation utilizes row-level locking (`with_for_update`) to eliminate race conditions on dispenser hardware.
-4. **Input Sanitization**: Pydantic v2 schemas strictly enforce data types, email formats, and coordinate bounds on all incoming payloads.
+------------------------------------------------------------------------
 
----
+## License
 
-## 🗺 Roadmap
-
-- [ ] **OCPP 2.0.1 Protocol Integration**: Direct WebSocket gateway for physical EVSE charge point communication.
-- [ ] **Dynamic Pricing Engine**: Automated tariff adjustment based on real-time grid wholesale electricity rates.
-- [ ] **Stripe / Payment Gateway Integration**: Real-world payment processing with automated refunds on cancelled reservations.
-- [ ] **Mobile Application**: Native iOS/Android experience built with React Native.
-- [ ] **IoT Telemetry Streaming**: Apache Kafka integration for real-time fleet telemetry ingestion at scale.
-
----
-
-## 📄 License
-
-This project is licensed under the terms of the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
+No license has been specified in the project documentation. Add a
+`LICENSE` file before presenting the repository as open source, and
+choose a license that matches how you want others to use the code.
